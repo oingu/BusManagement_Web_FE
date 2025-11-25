@@ -1,0 +1,151 @@
+# 📖 Hướng Dẫn Sử Dụng Hệ Thống Quản Lý Xe Bus
+
+## 🔐 Đăng Nhập
+
+### Tài khoản Demo (Không cần Backend)
+
+Sử dụng thông tin sau để đăng nhập:
+
+```
+Tên đăng nhập: admin
+Mật khẩu: admin123
+```
+
+Tài khoản này hoạt động với dữ liệu mẫu, không cần kết nối backend.
+
+---
+
+## 🚀 Hướng Dẫn Chạy Ứng Dụng
+
+### Bước 1: Cài đặt Dependencies
+
+```bash
+npm install
+```
+
+### Bước 2: Chạy Development Server
+
+```bash
+npm run dev
+```
+
+Ứng dụng sẽ mở tại: http://localhost:3000
+
+### Bước 3: Đăng nhập
+
+Sử dụng tài khoản demo ở trên để đăng nhập.
+
+---
+
+## 📋 Các Tính Năng Chính
+
+### 1. 📊 Dashboard
+- Xem tổng quan thống kê: số xe, nhân viên, học sinh, lộ trình
+- Theo dõi trạng thái xe
+- Xem hoạt động gần đây
+
+### 2. 👨‍✈️ Quản Lý Nhân Viên
+- Thêm, sửa, xóa nhân viên (tài xế và phụ xe)
+- Quản lý thông tin: tên, SĐT, email, địa chỉ, GPLX
+- Phân loại theo chức vụ
+
+### 3. 👨‍🎓 Quản Lý Học Sinh
+- Thêm, sửa, xóa thông tin học sinh
+- Lưu thông tin phụ huynh
+- **Quan trọng**: Nhập tọa độ địa lý (latitude, longitude) để hiển thị trên bản đồ
+
+**Ví dụ tọa độ Hà Nội:**
+- Latitude: 21.0285
+- Longitude: 105.8542
+
+### 4. 👤 Quản Lý Tài Khoản
+- Tạo tài khoản cho phụ huynh và phụ xe (dùng cho mobile app)
+- Reset mật khẩu
+- Khóa/mở khóa tài khoản
+
+### 5. 🚌 Quản Lý Phương Tiện
+- Thêm, sửa, xóa thông tin xe
+- Quản lý biển số, loại xe, số chỗ ngồi
+- Theo dõi trạng thái hoạt động/bảo trì
+
+### 6. 🗺️ Quản Lý Lộ Trình (★ Tính năng quan trọng nhất)
+
+#### Tạo Lộ Trình:
+1. Click nút "Thêm lộ trình"
+2. Nhập thông tin:
+   - Tên lộ trình
+   - Chọn xe bus
+   - Chọn tài xế
+   - Chọn phụ xe
+   - Loại lộ trình (Đón sáng/Trả chiều)
+   - Giờ bắt đầu và kết thúc
+3. Click "Thêm mới"
+
+#### Gán Học Sinh Cho Lộ Trình:
+1. Trong danh sách lộ trình, click nút **"Xem"** ở cột "Bản đồ"
+2. Bản đồ sẽ hiển thị:
+   - 📍 **Marker đỏ**: Trường học
+   - 📍 **Marker xanh dương**: Học sinh chưa được chọn
+   - 📍 **Marker xanh lá**: Học sinh đã được chọn
+3. **Click vào marker học sinh** để chọn/bỏ chọn
+4. Chuyển sang tab "Danh sách đã chọn" để xem học sinh đã chọn
+5. Click "Lưu" để gán học sinh vào lộ trình
+
+---
+
+## 🔧 Cấu Hình Backend (Tùy chọn)
+
+Khi đã có backend, tạo file `.env` với nội dung:
+
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+Thay `http://localhost:8000/api` bằng URL backend của bạn.
+
+---
+
+## 🎨 Giao Diện
+
+- **Responsive**: Hoạt động tốt trên desktop, tablet, mobile
+- **Material-UI**: Giao diện hiện đại, đẹp mắt
+- **Dark Sidebar**: Navigation dễ sử dụng
+- **Tìm kiếm & Phân trang**: Có sẵn ở tất cả các bảng dữ liệu
+
+---
+
+## 💡 Tips & Tricks
+
+### Tìm Tọa Độ Địa Lý
+1. Truy cập: https://www.latlong.net/
+2. Nhập địa chỉ hoặc click trên bản đồ
+3. Copy tọa độ Latitude và Longitude
+4. Paste vào form thêm học sinh
+
+### Phím Tắt
+- **Enter**: Submit form
+- **Esc**: Đóng dialog
+
+### Lưu Ý
+- Dữ liệu demo sẽ mất khi reload trang (chưa lưu vào database)
+- Khi có backend, dữ liệu sẽ được lưu trữ vĩnh viễn
+
+---
+
+## 🆘 Hỗ Trợ
+
+Nếu gặp lỗi:
+1. Kiểm tra console của browser (F12)
+2. Xem terminal có báo lỗi không
+3. Thử xóa cache và reload: `Ctrl + Shift + R`
+4. Restart development server: `Ctrl + C` rồi `npm run dev`
+
+---
+
+## 📞 Liên Hệ
+
+- Email: support@schoolbus.com
+- Phone: 024 1234 5678
+
+© 2024 School Bus Management System
+
