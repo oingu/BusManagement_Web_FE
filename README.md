@@ -6,10 +6,10 @@
 
 - 🚌 **Quản lý Phương tiện**: Quản lý thông tin các xe bus
 - 👨‍✈️ **Quản lý Nhân viên**: Quản lý tài xế và phụ xe
-- 👨‍🎓 **Quản lý Học sinh**: Quản lý thông tin học sinh đi xe
-- 👤 **Quản lý Tài khoản**: Quản lý tài khoản phụ huynh và phụ xe (cho mobile app)
-- 🗺️ **Quản lý Lộ trình**: Lập lộ trình, gán học sinh, xem bản đồ vị trí học sinh
-- 📊 **Dashboard**: Tổng quan thống kê hệ thống
+- 👨‍🎓 **Quản lý Học sinh**: Quản lý thông tin học sinh, **chọn vị trí trực tiếp trên bản đồ tương tác**, liên kết với tài khoản phụ huynh
+- 👤 **Quản lý Tài khoản**: Quản lý tài khoản phụ huynh và phụ xe (cho mobile app), xem học sinh đã liên kết
+- 🗺️ **Quản lý Lộ trình**: Lập lộ trình, gán học sinh, **vẽ tuyến đường thực tế** bằng OSRM API, tính khoảng cách và thời gian di chuyển, sắp xếp thứ tự điểm đón
+- 📊 **Dashboard**: Tổng quan thống kê hệ thống, theo dõi điểm danh nhân viên và học sinh theo ngày
 
 ## Công nghệ sử dụng
 
@@ -61,11 +61,35 @@ src/
 
 ## API Configuration
 
-Cấu hình API endpoint trong file `src/services/api.js`:
+Tạo file `.env` từ `.env.example`:
 
-```javascript
-const API_BASE_URL = 'http://localhost:8000/api';
+```bash
+cp .env.example .env
 ```
+
+Cấu hình trong file `.env`:
+
+```env
+# Backend API
+VITE_API_URL=http://localhost:8000/api
+
+# Routing API (OSRM)
+# Set to 'true' để dùng mock data, 'false' để dùng OSRM API thực
+VITE_USE_MOCK_ROUTING=false
+```
+
+### Mock Data vs Real API
+
+**Mock Data** (VITE_USE_MOCK_ROUTING=true):
+- ✅ Không cần internet
+- ✅ Tốc độ nhanh
+- ✅ Dữ liệu nhất quán cho demo
+- ⚠️ Chỉ dùng cho development/demo
+
+**Real OSRM API** (VITE_USE_MOCK_ROUTING=false):
+- ✅ Tuyến đường thực tế chính xác
+- ✅ Khoảng cách và thời gian thực
+- ⚠️ Cần kết nối internet
 
 ## Ghi chú
 

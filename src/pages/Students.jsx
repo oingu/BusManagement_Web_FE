@@ -12,15 +12,19 @@ import {
   Grid,
   Alert,
   Snackbar,
+  Tabs,
+  Tab,
 } from '@mui/material'
-import { Add as AddIcon } from '@mui/icons-material'
+import { Add as AddIcon, Info as InfoIcon, Map as MapIcon } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
+import MapPicker from '../components/MapPicker'
 import {
   getStudents,
   createStudent,
   updateStudent,
   deleteStudent,
+  getParentAccounts,
 } from '../services/api'
 
 const initialFormData = {
@@ -30,6 +34,7 @@ const initialFormData = {
   className: '',
   parentName: '',
   parentPhone: '',
+  parentAccountId: '',
   address: '',
   latitude: '',
   longitude: '',
@@ -38,17 +43,44 @@ const initialFormData = {
 
 const Students = () => {
   const [students, setStudents] = useState([])
+  const [parents, setParents] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
   const [formData, setFormData] = useState(initialFormData)
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
+  const [tabValue, setTabValue] = useState(0)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
   useEffect(() => {
     fetchStudents()
+    fetchParents()
   }, [])
+
+  const fetchParents = async () => {
+    try {
+      const response = await getParentAccounts()
+      setParents(response.data)
+    } catch (error) {
+      console.error('Error fetching parents:', error)
+      // Mock data for demo
+      setParents([
+        {
+          id: 1,
+          username: 'phuhuynhnguyen',
+          relatedName: 'Nguyễn Văn Cha',
+          relatedPhone: '0901234567',
+        },
+        {
+          id: 2,
+          username: 'phuhuynh.tran',
+          relatedName: 'Trần Văn Cha',
+          relatedPhone: '0902345678',
+        },
+      ])
+    }
+  }
 
   const fetchStudents = async () => {
     try {
@@ -56,35 +88,9 @@ const Students = () => {
       setStudents(response.data)
     } catch (error) {
       console.error('Error fetching students:', error)
-      // Mock data for demo
-      setStudents([
-        {
-          id: 1,
-          name: 'Nguyễn Văn Nam',
-          studentCode: 'HS001',
-          grade: '5',
-          className: '5A',
-          parentName: 'Nguyễn Văn Cha',
-          parentPhone: '0901234567',
-          address: '123 Đường ABC, Hà Nội',
-          latitude: 21.0285,
-          longitude: 105.8542,
-          status: 'Hoạt động',
-        },
-        {
-          id: 2,
-          name: 'Trần Thị Lan',
-          studentCode: 'HS002',
-          grade: '4',
-          className: '4B',
-          parentName: 'Trần Văn Cha',
-          parentPhone: '0902345678',
-          address: '456 Đường XYZ, Hà Nội',
-          latitude: 21.0245,
-          longitude: 105.8412,
-          status: 'Hoạt động',
-        },
-      ])
+      // Mock data for demo - import from mockRoutingData
+      const { MOCK_STUDENTS_WITH_LOCATION } = await import('../services/mockRoutingData')
+      setStudents(MOCK_STUDENTS_WITH_LOCATION)
     } finally {
       setLoading(false)
     }
@@ -99,6 +105,7 @@ const Students = () => {
         className: student.className,
         parentName: student.parentName,
         parentPhone: student.parentPhone,
+        parentAccountId: student.parentAccountId?.toString() || '',
         address: student.address,
         latitude: student.latitude?.toString() || '',
         longitude: student.longitude?.toString() || '',
@@ -116,6 +123,15 @@ const Students = () => {
     setOpenDialog(false)
     setFormData(initialFormData)
     setEditingId(null)
+    setTabValue(0)
+  }
+
+  const handleLocationChange = (lat, lng) => {
+    setFormData({
+      ...formData,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+    })
   }
 
   const handleSubmit = async () => {
@@ -182,6 +198,11 @@ const Students = () => {
     { id: 'className', label: 'Lớp' },
     { id: 'parentName', label: 'Phụ huynh' },
     { id: 'parentPhone', label: 'SĐT phụ huynh' },
+    { 
+      id: 'parentAccountName', 
+      label: 'TK Phụ huynh',
+      render: (value) => value || <em style={{ color: '#999' }}>Chưa liên kết</em>
+    },
     { id: 'address', label: 'Địa chỉ' },
     { id: 'status', label: 'Trạng thái', type: 'status' },
   ]
@@ -220,8 +241,13 @@ const Students = () => {
         <DialogTitle>
           {editingId ? 'Chỉnh sửa học sinh' : 'Thêm học sinh mới'}
         </DialogTitle>
+        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ px: 3, pt: 2 }}>
+          <Tab icon={<InfoIcon />} label="Thông tin cơ bản" />
+          <Tab icon={<MapIcon />} label="Chọn vị trí trên bản đồ" />
+        </Tabs>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          {tabValue === 0 && (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -270,6 +296,33 @@ const Students = () => {
                 placeholder="VD: 5A, 4B"
               />
             </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                select
+                label="Tài khoản phụ huynh"
+                value={formData.parentAccountId}
+                onChange={(e) => {
+                  const selectedParent = parents.find(p => p.id.toString() === e.target.value)
+                  setFormData({ 
+                    ...formData, 
+                    parentAccountId: e.target.value,
+                    parentName: selectedParent?.relatedName || '',
+                    parentPhone: selectedParent?.relatedPhone || '',
+                  })
+                }}
+                helperText="Liên kết học sinh với tài khoản phụ huynh trên ứng dụng mobile"
+              >
+                <MenuItem value="">
+                  <em>Chưa liên kết</em>
+                </MenuItem>
+                {parents.map((parent) => (
+                  <MenuItem key={parent.id} value={parent.id.toString()}>
+                    {parent.relatedName} - {parent.relatedPhone} ({parent.username})
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -279,6 +332,7 @@ const Students = () => {
                   setFormData({ ...formData, parentName: e.target.value })
                 }
                 required
+                helperText="Tự động điền khi chọn tài khoản phụ huynh"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -290,6 +344,7 @@ const Students = () => {
                   setFormData({ ...formData, parentPhone: e.target.value })
                 }
                 required
+                helperText="Tự động điền khi chọn tài khoản phụ huynh"
               />
             </Grid>
             <Grid item xs={12}>
@@ -315,7 +370,7 @@ const Students = () => {
                 }
                 type="number"
                 inputProps={{ step: 'any' }}
-                helperText="Tọa độ vị trí đón/trả học sinh"
+                helperText="Tọa độ vị trí đón/trả học sinh (hoặc dùng bản đồ)"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -328,7 +383,7 @@ const Students = () => {
                 }
                 type="number"
                 inputProps={{ step: 'any' }}
-                helperText="Tọa độ vị trí đón/trả học sinh"
+                helperText="Tọa độ vị trí đón/trả học sinh (hoặc dùng bản đồ)"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -344,6 +399,18 @@ const Students = () => {
               </TextField>
             </Grid>
           </Grid>
+          )}
+
+          {tabValue === 1 && (
+            <Box sx={{ mt: 2 }}>
+              <MapPicker
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onLocationChange={handleLocationChange}
+                address={formData.address}
+              />
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Hủy</Button>

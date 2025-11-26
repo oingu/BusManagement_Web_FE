@@ -79,7 +79,7 @@ const MainLayout = () => {
           justifyContent: 'center',
           px: 2,
           py: 3,
-          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          background: 'linear-gradient(135deg, #fbc02d 0%, #f57f17 100%)', // Gradient vàng
         }}
       >
         <BusIcon sx={{ fontSize: 40, color: 'white', mr: 1.5 }} />

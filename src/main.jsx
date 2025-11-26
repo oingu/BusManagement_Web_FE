@@ -8,14 +8,14 @@ import { AuthProvider } from './contexts/AuthContext'
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#fbc02d', // Màu vàng đậm (Yellow 700)
+      light: '#fff59d', // Màu vàng sáng (Yellow 200)
+      dark: '#f57f17', // Màu vàng tối (Yellow 900)
     },
     secondary: {
-      main: '#ff9800',
-      light: '#ffb74d',
-      dark: '#f57c00',
+      main: '#ff6f00', // Màu cam đậm
+      light: '#ff9e40',
+      dark: '#c43e00',
     },
     success: {
       main: '#4caf50',
@@ -24,7 +24,7 @@ const theme = createTheme({
       main: '#f44336',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#fffbf0', // Background vàng nhạt
       paper: '#ffffff',
     },
   },

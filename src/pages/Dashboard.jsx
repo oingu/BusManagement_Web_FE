@@ -15,6 +15,8 @@ import {
   School,
   Route,
   TrendingUp,
+  CheckCircle,
+  Today,
 } from '@mui/icons-material'
 import { getDashboardStats } from '../services/api'
 
@@ -70,6 +72,8 @@ const Dashboard = () => {
     totalStudents: 0,
     totalRoutes: 0,
     activeVehicles: 0,
+    employeesWorkingToday: 0,
+    studentsAttendingToday: 0,
     loading: true,
   })
 
@@ -93,6 +97,8 @@ const Dashboard = () => {
         totalStudents: 320,
         totalRoutes: 12,
         activeVehicles: 12,
+        employeesWorkingToday: 38,
+        studentsAttendingToday: 305,
         loading: false,
       })
     }
@@ -104,10 +110,69 @@ const Dashboard = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
-        Dashboard
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ flexGrow: 1 }}>
+          Dashboard
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'primary.main', color: 'white', px: 2, py: 1, borderRadius: 2 }}>
+          <Today />
+          <Typography variant="body1" fontWeight="bold">
+            {new Date().toLocaleDateString('vi-VN', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Thống kê hôm nay */}
+      <Typography variant="h6" gutterBottom fontWeight="bold" color="primary">
+        📊 Thống kê hôm nay
       </Typography>
-      
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Nhân viên đi làm"
+            value={`${stats.employeesWorkingToday}/${stats.totalEmployees}`}
+            icon={<CheckCircle />}
+            color="#2e7d32"
+            trend={`${Math.round((stats.employeesWorkingToday / stats.totalEmployees) * 100)}% tỷ lệ`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Học sinh đi học"
+            value={`${stats.studentsAttendingToday}/${stats.totalStudents}`}
+            icon={<School />}
+            color="#1565c0"
+            trend={`${Math.round((stats.studentsAttendingToday / stats.totalStudents) * 100)}% tỷ lệ`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Xe hoạt động"
+            value={`${stats.activeVehicles}/${stats.totalVehicles}`}
+            icon={<DirectionsBus />}
+            color="#ed6c02"
+            trend={`${Math.round((stats.activeVehicles / stats.totalVehicles) * 100)}% sẵn sàng`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Lộ trình hoạt động"
+            value={stats.totalRoutes}
+            icon={<Route />}
+            color="#9c27b0"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Tổng quan hệ thống */}
+      <Typography variant="h6" gutterBottom fontWeight="bold" color="text.secondary" sx={{ mt: 4 }}>
+        📈 Tổng quan hệ thống
+      </Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
@@ -120,7 +185,7 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Nhân viên"
+            title="Tổng nhân viên"
             value={stats.totalEmployees}
             icon={<People />}
             color="#ff9800"
@@ -128,7 +193,7 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Học sinh"
+            title="Tổng học sinh"
             value={stats.totalStudents}
             icon={<School />}
             color="#4caf50"
@@ -137,7 +202,7 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Lộ trình"
+            title="Tổng lộ trình"
             value={stats.totalRoutes}
             icon={<Route />}
             color="#9c27b0"
@@ -146,8 +211,57 @@ const Dashboard = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" gutterBottom fontWeight="bold">
+              Điểm danh hôm nay
+            </Typography>
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">Nhân viên đi làm</Typography>
+                <Typography variant="body2" fontWeight="bold" color="success.main">
+                  {stats.employeesWorkingToday}/{stats.totalEmployees}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(stats.employeesWorkingToday / stats.totalEmployees) * 100}
+                sx={{ height: 8, borderRadius: 4 }}
+                color="success"
+              />
+            </Box>
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">Học sinh đi học</Typography>
+                <Typography variant="body2" fontWeight="bold" color="primary.main">
+                  {stats.studentsAttendingToday}/{stats.totalStudents}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(stats.studentsAttendingToday / stats.totalStudents) * 100}
+                sx={{ height: 8, borderRadius: 4 }}
+              />
+            </Box>
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">Nhân viên vắng</Typography>
+                <Typography variant="body2" fontWeight="bold" color="error.main">
+                  {stats.totalEmployees - stats.employeesWorkingToday}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">Học sinh vắng</Typography>
+                <Typography variant="body2" fontWeight="bold" color="error.main">
+                  {stats.totalStudents - stats.studentsAttendingToday}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Tình trạng xe
             </Typography>
@@ -181,8 +295,8 @@ const Dashboard = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom fontWeight="bold">
               Hoạt động gần đây
             </Typography>

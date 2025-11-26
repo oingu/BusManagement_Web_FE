@@ -14,8 +14,17 @@ import {
   Snackbar,
   IconButton,
   Tooltip,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material'
-import { Add as AddIcon, VpnKey as ResetIcon } from '@mui/icons-material'
+import { 
+  Add as AddIcon, 
+  VpnKey as ResetIcon,
+  School as SchoolIcon,
+} from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import {
@@ -24,6 +33,10 @@ import {
   updateAccount,
   deleteAccount,
   resetPassword,
+  getStudentsByParent,
+  getStudents,
+  linkStudentToParent,
+  unlinkStudentFromParent,
 } from '../services/api'
 
 const initialFormData = {
@@ -42,10 +55,14 @@ const Accounts = () => {
   const [openDialog, setOpenDialog] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
   const [openResetConfirm, setOpenResetConfirm] = useState(false)
+  const [openStudentsDialog, setOpenStudentsDialog] = useState(false)
   const [formData, setFormData] = useState(initialFormData)
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [resetId, setResetId] = useState(null)
+  const [selectedParent, setSelectedParent] = useState(null)
+  const [parentStudents, setParentStudents] = useState([])
+  const [allStudents, setAllStudents] = useState([])
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
   useEffect(() => {
@@ -68,9 +85,20 @@ const Accounts = () => {
           relatedPhone: '0901234567',
           email: 'nguyen@example.com',
           status: 'Hoạt động',
+          studentCount: 2,
         },
         {
           id: 2,
+          username: 'phuhuynh.tran',
+          accountType: 'Phụ huynh',
+          relatedName: 'Trần Văn Cha',
+          relatedPhone: '0902345678',
+          email: 'tran@example.com',
+          status: 'Hoạt động',
+          studentCount: 1,
+        },
+        {
+          id: 3,
           username: 'phuxetran',
           accountType: 'Phụ xe',
           relatedName: 'Trần Thị B',
@@ -191,12 +219,132 @@ const Accounts = () => {
     }
   }
 
+  const handleViewStudents = async (account) => {
+    if (account.accountType !== 'Phụ huynh') {
+      setSnackbar({
+        open: true,
+        message: 'Chỉ tài khoản phụ huynh mới có học sinh!',
+        severity: 'warning',
+      })
+      return
+    }
+
+    setSelectedParent(account)
+    setOpenStudentsDialog(true)
+
+    try {
+      const [studentsRes, allStudentsRes] = await Promise.all([
+        getStudentsByParent(account.id),
+        getStudents(),
+      ])
+      setParentStudents(studentsRes.data)
+      setAllStudents(allStudentsRes.data)
+    } catch (error) {
+      console.error('Error fetching students:', error)
+      // Mock data for demo
+      setParentStudents([
+        {
+          id: 1,
+          name: 'Nguyễn Văn Nam',
+          studentCode: 'HS001',
+          className: '5A',
+        },
+        {
+          id: 3,
+          name: 'Nguyễn Thị Hương',
+          studentCode: 'HS003',
+          className: '3B',
+        },
+      ])
+      setAllStudents([
+        {
+          id: 1,
+          name: 'Nguyễn Văn Nam',
+          studentCode: 'HS001',
+          className: '5A',
+        },
+        {
+          id: 2,
+          name: 'Trần Thị Lan',
+          studentCode: 'HS002',
+          className: '4B',
+        },
+        {
+          id: 3,
+          name: 'Nguyễn Thị Hương',
+          studentCode: 'HS003',
+          className: '3B',
+        },
+      ])
+    }
+  }
+
+  const handleLinkStudent = async (studentId) => {
+    try {
+      await linkStudentToParent(selectedParent.id, studentId)
+      setSnackbar({
+        open: true,
+        message: 'Liên kết học sinh thành công!',
+        severity: 'success',
+      })
+      handleViewStudents(selectedParent)
+      fetchAccounts()
+    } catch (error) {
+      console.error('Error linking student:', error)
+      setSnackbar({
+        open: true,
+        message: 'Có lỗi xảy ra!',
+        severity: 'error',
+      })
+    }
+  }
+
+  const handleUnlinkStudent = async (studentId) => {
+    try {
+      await unlinkStudentFromParent(selectedParent.id, studentId)
+      setSnackbar({
+        open: true,
+        message: 'Hủy liên kết học sinh thành công!',
+        severity: 'success',
+      })
+      handleViewStudents(selectedParent)
+      fetchAccounts()
+    } catch (error) {
+      console.error('Error unlinking student:', error)
+      setSnackbar({
+        open: true,
+        message: 'Có lỗi xảy ra!',
+        severity: 'error',
+      })
+    }
+  }
+
   const columns = [
     { id: 'username', label: 'Tên đăng nhập' },
     { id: 'accountType', label: 'Loại tài khoản' },
     { id: 'relatedName', label: 'Tên người dùng' },
     { id: 'relatedPhone', label: 'Số điện thoại' },
     { id: 'email', label: 'Email' },
+    {
+      id: 'studentCount',
+      label: 'Học sinh',
+      render: (value, row) => {
+        if (row.accountType !== 'Phụ huynh') return '-'
+        return (
+          <Chip
+            icon={<SchoolIcon />}
+            label={value || 0}
+            color={value > 0 ? 'primary' : 'default'}
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleViewStudents(row)
+            }}
+            sx={{ cursor: 'pointer' }}
+          />
+        )
+      },
+    },
     { id: 'status', label: 'Trạng thái', type: 'status' },
     {
       id: 'actions',
@@ -377,6 +525,89 @@ const Accounts = () => {
         confirmText="Reset"
         confirmColor="warning"
       />
+
+      {/* Dialog hiển thị học sinh của phụ huynh */}
+      <Dialog
+        open={openStudentsDialog}
+        onClose={() => setOpenStudentsDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Học sinh của: {selectedParent?.relatedName}
+          <Typography variant="body2" color="text.secondary">
+            Tài khoản: {selectedParent?.username}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Học sinh đã liên kết ({parentStudents.length})
+            </Typography>
+            {parentStudents.length === 0 ? (
+              <Alert severity="info">Chưa có học sinh nào được liên kết</Alert>
+            ) : (
+              <List>
+                {parentStudents.map((student) => (
+                  <Box key={student.id}>
+                    <ListItem>
+                      <ListItemText
+                        primary={student.name}
+                        secondary={`Mã HS: ${student.studentCode} | Lớp: ${student.className}`}
+                      />
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => handleUnlinkStudent(student.id)}
+                      >
+                        Hủy liên kết
+                      </Button>
+                    </ListItem>
+                    <Divider />
+                  </Box>
+                ))}
+              </List>
+            )}
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Thêm học sinh
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Chọn học sinh để liên kết với tài khoản này
+            </Typography>
+            <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {allStudents
+                .filter(s => !parentStudents.some(ps => ps.id === s.id))
+                .map((student) => (
+                  <Box key={student.id}>
+                    <ListItem>
+                      <ListItemText
+                        primary={student.name}
+                        secondary={`Mã HS: ${student.studentCode} | Lớp: ${student.className}`}
+                      />
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleLinkStudent(student.id)}
+                      >
+                        Liên kết
+                      </Button>
+                    </ListItem>
+                    <Divider />
+                  </Box>
+                ))}
+            </List>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenStudentsDialog(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

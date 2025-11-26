@@ -28,6 +28,8 @@ import {
   Delete as DeleteIcon,
   Map as MapIcon,
   List as ListIcon,
+  ArrowUpward as ArrowUpIcon,
+  ArrowDownward as ArrowDownIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -110,26 +112,9 @@ const Routes = () => {
           status: 'Hoạt động',
         },
       ])
-      setStudents([
-        {
-          id: 1,
-          name: 'Nguyễn Văn Nam',
-          studentCode: 'HS001',
-          className: '5A',
-          address: '123 Đường ABC, Hà Nội',
-          latitude: 21.0285,
-          longitude: 105.8542,
-        },
-        {
-          id: 2,
-          name: 'Trần Thị Lan',
-          studentCode: 'HS002',
-          className: '4B',
-          address: '456 Đường XYZ, Hà Nội',
-          latitude: 21.0245,
-          longitude: 105.8412,
-        },
-      ])
+      // Mock data for students - import from mockRoutingData  
+      const { MOCK_STUDENTS_WITH_LOCATION } = await import('../services/mockRoutingData')
+      setStudents(MOCK_STUDENTS_WITH_LOCATION)
       setVehicles([
         { id: 1, licensePlate: '29B-12345', capacity: 30 },
         { id: 2, licensePlate: '30A-67890', capacity: 25 },
@@ -244,6 +229,24 @@ const Routes = () => {
 
   const handleRemoveStudent = (studentId) => {
     setSelectedStudents(selectedStudents.filter(s => s.id !== studentId))
+  }
+
+  const handleMoveStudentUp = (index) => {
+    if (index === 0) return
+    const newStudents = [...selectedStudents]
+    const temp = newStudents[index]
+    newStudents[index] = newStudents[index - 1]
+    newStudents[index - 1] = temp
+    setSelectedStudents(newStudents)
+  }
+
+  const handleMoveStudentDown = (index) => {
+    if (index === selectedStudents.length - 1) return
+    const newStudents = [...selectedStudents]
+    const temp = newStudents[index]
+    newStudents[index] = newStudents[index + 1]
+    newStudents[index + 1] = temp
+    setSelectedStudents(newStudents)
   }
 
   const handleSaveRouteStudents = async () => {
@@ -468,32 +471,72 @@ const Routes = () => {
 
           {tabValue === 0 && (
             <Box>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Click vào marker trên bản đồ để chọn/bỏ chọn học sinh. Marker xanh lá =
-                đã chọn, marker xanh dương = chưa chọn.
+              <Alert severity="success" sx={{ mb: 2 }}>
+                <strong>🗺️ Tuyến đường thực tế:</strong>
+                <br />
+                • Hệ thống tự động tính toán tuyến đường tối ưu theo đường thực tế (sử dụng OSRM)
+                <br />
+                • Click vào marker để chọn/bỏ chọn học sinh
+                <br />
+                • Marker có số = điểm đón (theo thứ tự)
+                <br />
+                • Đường màu xanh dương = tuyến đường thực tế xe bus sẽ đi
+                <br />
+                • Thông tin khoảng cách và thời gian hiển thị ở góc phải trên
               </Alert>
               <RouteMap
                 students={students}
                 selectedStudents={selectedStudents}
                 onStudentClick={handleStudentClick}
+                showRoute={true}
+                useRealRouting={true}
               />
             </Box>
           )}
 
           {tabValue === 1 && (
             <Paper sx={{ p: 2, minHeight: 400 }}>
-              <Typography variant="h6" gutterBottom>
-                Học sinh đã chọn ({selectedStudents.length})
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Học sinh đã chọn ({selectedStudents.length})
+                </Typography>
+                {selectedStudents.length > 0 && (
+                  <Typography variant="caption" color="text.secondary">
+                    Sử dụng mũi tên để sắp xếp thứ tự điểm đón
+                  </Typography>
+                )}
+              </Box>
               {selectedStudents.length === 0 ? (
                 <Typography color="text.secondary">
                   Chưa có học sinh nào được chọn
                 </Typography>
               ) : (
                 <List>
-                  {selectedStudents.map((student) => (
+                  {selectedStudents.map((student, index) => (
                     <Box key={student.id}>
-                      <ListItem>
+                      <ListItem
+                        sx={{
+                          bgcolor: 'background.default',
+                          borderRadius: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            mr: 2,
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
                         <ListItemText
                           primary={student.name}
                           secondary={
@@ -504,6 +547,22 @@ const Routes = () => {
                         />
                         <ListItemSecondaryAction>
                           <IconButton
+                            size="small"
+                            onClick={() => handleMoveStudentUp(index)}
+                            disabled={index === 0}
+                            sx={{ mr: 0.5 }}
+                          >
+                            <ArrowUpIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleMoveStudentDown(index)}
+                            disabled={index === selectedStudents.length - 1}
+                            sx={{ mr: 0.5 }}
+                          >
+                            <ArrowDownIcon />
+                          </IconButton>
+                          <IconButton
                             edge="end"
                             onClick={() => handleRemoveStudent(student.id)}
                             color="error"
@@ -512,7 +571,6 @@ const Routes = () => {
                           </IconButton>
                         </ListItemSecondaryAction>
                       </ListItem>
-                      <Divider />
                     </Box>
                   ))}
                 </List>

@@ -41,8 +41,11 @@ Sử dụng tài khoản demo ở trên để đăng nhập.
 
 ### 1. 📊 Dashboard
 - Xem tổng quan thống kê: số xe, nhân viên, học sinh, lộ trình
+- **Điểm danh hôm nay**: Theo dõi số nhân viên đi làm và học sinh đi học trong ngày
+- Tỷ lệ tham gia của nhân viên và học sinh
 - Theo dõi trạng thái xe
 - Xem hoạt động gần đây
+- Hiển thị ngày hiện tại
 
 ### 2. 👨‍✈️ Quản Lý Nhân Viên
 - Thêm, sửa, xóa nhân viên (tài xế và phụ xe)
@@ -52,7 +55,16 @@ Sử dụng tài khoản demo ở trên để đăng nhập.
 ### 3. 👨‍🎓 Quản Lý Học Sinh
 - Thêm, sửa, xóa thông tin học sinh
 - Lưu thông tin phụ huynh
-- **Quan trọng**: Nhập tọa độ địa lý (latitude, longitude) để hiển thị trên bản đồ
+- Liên kết với tài khoản phụ huynh trên app mobile
+- **Chọn vị trí trên bản đồ**: Click trực tiếp trên bản đồ để chọn vị trí đón/trả học sinh
+
+**Cách chọn vị trí học sinh:**
+1. Trong form thêm/sửa học sinh, chuyển sang tab **"Chọn vị trí trên bản đồ"**
+2. **Click trực tiếp** trên bản đồ tại vị trí đón/trả học sinh
+3. Marker đỏ sẽ hiển thị vị trí đã chọn
+4. Tọa độ sẽ tự động được cập nhật
+5. Hoặc nhập tọa độ thủ công ở ô bên dưới bản đồ
+6. Có thể dùng nút **"Vị trí của tôi"** để lấy vị trí hiện tại
 
 **Ví dụ tọa độ Hà Nội:**
 - Latitude: 21.0285
@@ -83,13 +95,21 @@ Sử dụng tài khoản demo ở trên để đăng nhập.
 
 #### Gán Học Sinh Cho Lộ Trình:
 1. Trong danh sách lộ trình, click nút **"Xem"** ở cột "Bản đồ"
-2. Bản đồ sẽ hiển thị:
-   - 📍 **Marker đỏ**: Trường học
+2. **Tab "Bản đồ"** sẽ hiển thị:
+   - 📍 **Marker đỏ**: Trường học (điểm bắt đầu và kết thúc)
    - 📍 **Marker xanh dương**: Học sinh chưa được chọn
-   - 📍 **Marker xanh lá**: Học sinh đã được chọn
+   - 📍 **Marker xanh lá có số**: Học sinh đã được chọn (số = thứ tự điểm đón)
+   - 🛣️ **Đường màu xanh dương**: Tuyến đường thực tế xe bus sẽ đi (tính bằng OSRM API)
+   - 📊 **Thông tin lộ trình** (góc phải trên): Khoảng cách và thời gian di chuyển
 3. **Click vào marker học sinh** để chọn/bỏ chọn
-4. Chuyển sang tab "Danh sách đã chọn" để xem học sinh đã chọn
-5. Click "Lưu" để gán học sinh vào lộ trình
+4. Tuyến đường sẽ **tự động vẽ** kết nối: Trường → Học sinh 1 → Học sinh 2 → ... → Trường
+5. Chuyển sang **tab "Danh sách đã chọn"** để:
+   - Xem danh sách học sinh theo thứ tự
+   - **Sắp xếp thứ tự** bằng nút mũi tên ↑↓
+   - Xóa học sinh khỏi lộ trình
+6. Click **"Lưu"** để gán học sinh vào lộ trình
+
+**Lưu ý:** Thứ tự học sinh trong danh sách = thứ tự điểm đón trên lộ trình!
 
 ---
 
@@ -116,11 +136,18 @@ Thay `http://localhost:8000/api` bằng URL backend của bạn.
 
 ## 💡 Tips & Tricks
 
-### Tìm Tọa Độ Địa Lý
+### Chọn Vị Trí Học Sinh
+**Cách 1: Chọn trực tiếp trên bản đồ (Khuyên dùng)**
+1. Mở form thêm/sửa học sinh
+2. Chuyển sang tab "Chọn vị trí trên bản đồ"
+3. Click vào vị trí trên bản đồ
+4. Tọa độ sẽ tự động được điền
+
+**Cách 2: Tìm tọa độ trên mạng**
 1. Truy cập: https://www.latlong.net/
 2. Nhập địa chỉ hoặc click trên bản đồ
 3. Copy tọa độ Latitude và Longitude
-4. Paste vào form thêm học sinh
+4. Paste vào form thêm học sinh (tab "Thông tin cơ bản")
 
 ### Phím Tắt
 - **Enter**: Submit form

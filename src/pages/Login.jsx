@@ -54,7 +54,7 @@ const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #ffd54f 0%, #ff6f00 100%)', // Gradient vàng-cam
       }}
     >
       <Container maxWidth="sm">
@@ -67,7 +67,7 @@ const Login = () => {
         >
           <Box
             sx={{
-              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              background: 'linear-gradient(135deg, #fbc02d 0%, #f57f17 100%)', // Gradient vàng đậm
               py: 4,
               px: 3,
               textAlign: 'center',

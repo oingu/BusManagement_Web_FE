@@ -67,6 +67,15 @@ export const createAccount = (data) => api.post('/accounts', data)
 export const updateAccount = (id, data) => api.put(`/accounts/${id}`, data)
 export const deleteAccount = (id) => api.delete(`/accounts/${id}`)
 export const resetPassword = (id) => api.post(`/accounts/${id}/reset-password`)
+// Get parent accounts only
+export const getParentAccounts = () => api.get('/accounts/parents')
+// Link/unlink students with parent account
+export const linkStudentToParent = (parentId, studentId) => 
+  api.post(`/accounts/${parentId}/students/${studentId}`)
+export const unlinkStudentFromParent = (parentId, studentId) => 
+  api.delete(`/accounts/${parentId}/students/${studentId}`)
+export const getStudentsByParent = (parentId) => 
+  api.get(`/accounts/${parentId}/students`)
 
 // Vehicles (Phương tiện)
 export const getVehicles = () => api.get('/vehicles')
@@ -88,6 +97,7 @@ export const removeStudentFromRoute = (routeId, studentId) =>
 
 // Dashboard statistics
 export const getDashboardStats = () => api.get('/dashboard/stats')
+export const getTodayAttendance = () => api.get('/dashboard/attendance/today')
 
 export default api
 
