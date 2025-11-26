@@ -321,6 +321,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0315,
     longitude: 105.8612,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=33',
   },
   {
     id: 2,
@@ -336,6 +337,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0245,
     longitude: 105.8482,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=45',
   },
   {
     id: 3,
@@ -351,6 +353,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0355,
     longitude: 105.8585,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=11',
   },
   {
     id: 4,
@@ -366,6 +369,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0225,
     longitude: 105.8565,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=20',
   },
   {
     id: 5,
@@ -381,6 +385,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0295,
     longitude: 105.8625,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=52',
   },
   {
     id: 6,
@@ -396,6 +401,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0195,
     longitude: 105.8495,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=31',
   },
   {
     id: 7,
@@ -411,6 +417,7 @@ export const MOCK_STUDENTS_WITH_LOCATION = [
     latitude: 21.0265,
     longitude: 105.8515,
     status: 'Hoạt động',
+    photo: 'https://i.pravatar.cc/150?img=68',
   },
 ]
 

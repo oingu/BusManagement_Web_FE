@@ -18,12 +18,14 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 import { useState } from 'react'
 
 const DataTable = ({
   columns,
   data,
+  onView,
   onEdit,
   onDelete,
   searchable = true,
@@ -126,6 +128,17 @@ const DataTable = ({
                     </TableCell>
                   ))}
                   <TableCell align="center">
+                    {onView && (
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton
+                          color="info"
+                          size="small"
+                          onClick={() => onView(row)}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Chỉnh sửa">
                       <IconButton
                         color="primary"
