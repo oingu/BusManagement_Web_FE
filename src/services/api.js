@@ -70,11 +70,11 @@ export const resetPassword = (id) => api.post(`/accounts/${id}/reset-password`)
 // Get parent accounts only
 export const getParentAccounts = () => api.get('/accounts/parents')
 // Link/unlink students with parent account
-export const linkStudentToParent = (parentId, studentId) => 
+export const linkStudentToParent = (parentId, studentId) =>
   api.post(`/accounts/${parentId}/students/${studentId}`)
-export const unlinkStudentFromParent = (parentId, studentId) => 
+export const unlinkStudentFromParent = (parentId, studentId) =>
   api.delete(`/accounts/${parentId}/students/${studentId}`)
-export const getStudentsByParent = (parentId) => 
+export const getStudentsByParent = (parentId) =>
   api.get(`/accounts/${parentId}/students`)
 
 // Vehicles (Phương tiện)
@@ -90,10 +90,18 @@ export const getRoute = (id) => api.get(`/routes/${id}`)
 export const createRoute = (data) => api.post('/routes', data)
 export const updateRoute = (id, data) => api.put(`/routes/${id}`, data)
 export const deleteRoute = (id) => api.delete(`/routes/${id}`)
-export const assignStudentsToRoute = (routeId, studentIds) => 
+export const assignStudentsToRoute = (routeId, studentIds) =>
   api.post(`/routes/${routeId}/students`, { studentIds })
-export const removeStudentFromRoute = (routeId, studentId) => 
+export const removeStudentFromRoute = (routeId, studentId) =>
   api.delete(`/routes/${routeId}/students/${studentId}`)
+
+// Bus Stops (Điểm dừng đón trả)
+export const getBusStops = () => api.get('/bus-stops')
+export const getBusStop = (id) => api.get(`/bus-stops/${id}`)
+export const createBusStop = (data) => api.post('/bus-stops', data)
+export const updateBusStop = (id, data) => api.put(`/bus-stops/${id}`, data)
+export const deleteBusStop = (id) => api.delete(`/bus-stops/${id}`)
+
 
 // Dashboard statistics
 export const getDashboardStats = () => api.get('/dashboard/stats')

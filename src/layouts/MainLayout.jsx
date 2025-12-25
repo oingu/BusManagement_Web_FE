@@ -25,6 +25,7 @@ import {
   School as SchoolIcon,
   AccountCircle as AccountIcon,
   Route as RouteIcon,
+  LocationOn as LocationOnIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
@@ -37,6 +38,7 @@ const menuItems = [
   { text: 'Quản lý Học sinh', icon: <SchoolIcon />, path: '/students' },
   { text: 'Quản lý Tài khoản', icon: <AccountIcon />, path: '/accounts' },
   { text: 'Quản lý Phương tiện', icon: <BusIcon />, path: '/vehicles' },
+  { text: 'Quản lý Điểm dừng', icon: <LocationOnIcon />, path: '/bus-stops' },
   { text: 'Quản lý Lộ trình', icon: <RouteIcon />, path: '/routes' },
 ]
 

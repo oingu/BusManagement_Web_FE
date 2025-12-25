@@ -8,6 +8,7 @@ import Students from './pages/Students'
 import Accounts from './pages/Accounts'
 import Vehicles from './pages/Vehicles'
 import RoutesPage from './pages/Routes'
+import BusStops from './pages/BusStops'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -17,7 +18,7 @@ function App() {
       <Route path="/login" element={
         isAuthenticated ? <Navigate to="/" replace /> : <Login />
       } />
-      
+
       <Route path="/" element={
         isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />
       }>
@@ -27,6 +28,7 @@ function App() {
         <Route path="accounts" element={<Accounts />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="routes" element={<RoutesPage />} />
+        <Route path="bus-stops" element={<BusStops />} />
       </Route>
     </Routes>
   )
