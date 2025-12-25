@@ -29,6 +29,7 @@ import {
   updateStudent,
   deleteStudent,
   getParentAccounts,
+  getBusStops,
 } from '../services/api'
 
 const initialFormData = {
@@ -39,6 +40,7 @@ const initialFormData = {
   parentName: '',
   parentPhone: '',
   parentAccountId: '',
+  busStopId: '',
   address: '',
   latitude: '',
   longitude: '',
@@ -49,6 +51,7 @@ const initialFormData = {
 const Students = () => {
   const [students, setStudents] = useState([])
   const [parents, setParents] = useState([])
+  const [busStops, setBusStops] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
@@ -64,6 +67,7 @@ const Students = () => {
   useEffect(() => {
     fetchStudents()
     fetchParents()
+    fetchBusStops()
   }, [])
 
   const fetchParents = async () => {
@@ -87,6 +91,21 @@ const Students = () => {
           relatedPhone: '0902345678',
         },
       ])
+    }
+  }
+
+  const fetchBusStops = async () => {
+    const mockData = [
+      { id: 1, name: 'Ngã tư Lê Văn Lương', latitude: 21.0285, longitude: 105.8542, address: 'Số 123 Lê Văn Lương, Thanh Xuân, Hà Nội', status: 'Hoạt động' },
+      { id: 2, name: 'Ngã tư Trung Hòa - Nhân Chính', latitude: 21.0055, longitude: 105.8136, address: 'Ngã tư Trung Hòa - Nhân Chính, Cầu Giấy, Hà Nội', status: 'Hoạt động' },
+      { id: 3, name: 'Bến xe Mỹ Đình', latitude: 21.0277, longitude: 105.7800, address: 'Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội', status: 'Hoạt động' },
+    ]
+    try {
+      const response = await getBusStops()
+      setBusStops(response.data && response.data.length > 0 ? response.data.filter(s => s.status === 'Hoạt động') : mockData)
+    } catch (error) {
+      console.error('Error fetching bus stops:', error)
+      setBusStops(mockData)
     }
   }
 
@@ -114,6 +133,7 @@ const Students = () => {
         parentName: student.parentName,
         parentPhone: student.parentPhone,
         parentAccountId: student.parentAccountId?.toString() || '',
+        busStopId: student.busStopId?.toString() || '',
         address: student.address,
         latitude: student.latitude?.toString() || '',
         longitude: student.longitude?.toString() || '',
@@ -160,6 +180,22 @@ const Students = () => {
     }
   }
 
+  const handleBusStopChange = (event) => {
+    const selectedId = event.target.value
+    const selectedStop = busStops.find(stop => stop.id.toString() === selectedId)
+    if (selectedStop) {
+      setFormData({
+        ...formData,
+        busStopId: selectedId,
+        address: selectedStop.address,
+        latitude: selectedStop.latitude.toString(),
+        longitude: selectedStop.longitude.toString(),
+      })
+    } else {
+      setFormData({ ...formData, busStopId: '' })
+    }
+  }
+
   const handleLocationChange = (lat, lng) => {
     setFormData({
       ...formData,
@@ -172,6 +208,7 @@ const Students = () => {
     try {
       const dataToSubmit = {
         ...formData,
+        busStopId: formData.busStopId ? parseInt(formData.busStopId) : null,
         latitude: parseFloat(formData.latitude) || null,
         longitude: parseFloat(formData.longitude) || null,
         status: formData.status === 'active' ? 'Hoạt động' : 'Ngừng đi xe',
@@ -227,12 +264,12 @@ const Students = () => {
   }
 
   const columns = [
-    { 
-      id: 'photo', 
+    {
+      id: 'photo',
       label: 'Ảnh',
       render: (value) => (
-        <Avatar 
-          src={value} 
+        <Avatar
+          src={value}
           alt="Student"
           sx={{ width: 40, height: 40 }}
         />
@@ -283,9 +320,9 @@ const Students = () => {
             {editingId ? 'Chỉnh sửa học sinh' : 'Thêm học sinh mới'}
           </Typography>
         </DialogTitle>
-        <Tabs 
-          value={tabValue} 
-          onChange={(e, v) => setTabValue(v)} 
+        <Tabs
+          value={tabValue}
+          onChange={(e, v) => setTabValue(v)}
           sx={{ px: 3, borderBottom: 1, borderColor: 'divider' }}
         >
           <Tab icon={<InfoIcon />} iconPosition="start" label="Thông tin cơ bản" />
@@ -296,8 +333,8 @@ const Students = () => {
             <Stack spacing={3}>
               {/* Ảnh đại diện */}
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pb: 2 }}>
-                <Avatar 
-                  src={photoPreview} 
+                <Avatar
+                  src={photoPreview}
                   sx={{ width: 120, height: 120, border: '3px solid #e0e0e0' }}
                 />
                 <Button
@@ -405,8 +442,8 @@ const Students = () => {
                       value={formData.parentAccountId}
                       onChange={(e) => {
                         const selectedParent = parents.find(p => p.id.toString() === e.target.value)
-                        setFormData({ 
-                          ...formData, 
+                        setFormData({
+                          ...formData,
                           parentAccountId: e.target.value,
                           parentName: selectedParent?.relatedName || '',
                           parentPhone: selectedParent?.relatedPhone || '',
@@ -510,8 +547,27 @@ const Students = () => {
 
           {tabValue === 1 && (
             <Box sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                select
+                label="Chọn điểm dừng có sẵn"
+                value={formData.busStopId}
+                onChange={handleBusStopChange}
+                sx={{ mb: 3 }}
+                helperText="Chọn điểm dừng sẽ tự động điền tọa độ và địa chỉ vào bản đồ"
+              >
+                <MenuItem value="">
+                  <em>Không chọn - Click trên bản đồ để chọn vị trí tùy chỉnh</em>
+                </MenuItem>
+                {busStops.map((stop) => (
+                  <MenuItem key={stop.id} value={stop.id.toString()}>
+                    {stop.name} - {stop.address}
+                  </MenuItem>
+                ))}
+              </TextField>
+
               <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Click trên bản đồ để chọn vị trí đón/trả học sinh chính xác
+                Hoặc click trực tiếp trên bản đồ để chọn vị trí đón/trả học sinh
               </Typography>
               <MapPicker
                 latitude={formData.latitude}
@@ -541,8 +597,8 @@ const Students = () => {
             <Box sx={{ pt: 2 }}>
               {/* Ảnh đại diện */}
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-                <Avatar 
-                  src={viewingStudent.photo} 
+                <Avatar
+                  src={viewingStudent.photo}
                   sx={{ width: 150, height: 150 }}
                 />
               </Box>
@@ -589,8 +645,8 @@ const Students = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Trạng thái
                   </Typography>
-                  <Chip 
-                    label={viewingStudent.status} 
+                  <Chip
+                    label={viewingStudent.status}
                     color={viewingStudent.status === 'Hoạt động' ? 'success' : 'default'}
                     size="small"
                   />
@@ -650,11 +706,11 @@ const Students = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseViewDialog}>Đóng</Button>
-          <Button 
+          <Button
             onClick={() => {
               handleCloseViewDialog()
               handleOpenDialog(viewingStudent)
-            }} 
+            }}
             variant="contained"
           >
             Chỉnh sửa
