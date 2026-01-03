@@ -12,6 +12,7 @@ import {
   Grid,
   Alert,
   Snackbar,
+  Pagination,
 } from '@mui/material'
 import { Add as AddIcon } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
@@ -24,14 +25,14 @@ import {
 } from '../services/api'
 
 const initialFormData = {
-  licensePlate: '',
-  vehicleType: 'bus',
+  plate_number: '',
+  type: 1,
   capacity: '',
   brand: '',
   model: '',
   year: '',
   color: '',
-  status: 'active',
+  status: 1,
 }
 
 const Vehicles = () => {
@@ -43,58 +44,68 @@ const Vehicles = () => {
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
 
   useEffect(() => {
     fetchVehicles()
-  }, [])
+  }, [page])
+
 
   const fetchVehicles = async () => {
     try {
-      const response = await getVehicles()
-      setVehicles(response.data)
+      setLoading(true)
+      const response = await getVehicles({ page })
+      // API returns paginated data: { data: [...], total, last_page, current_page, ... }
+      const responseData = response.data
+      const vehiclesData = responseData.data || responseData
+
+      // Set pagination metadata
+      if (responseData.total !== undefined) {
+        setTotalRecords(responseData.total)
+        setTotalPages(responseData.last_page || 1)
+      }
+
+      // Map API fields to display format
+      const mappedVehicles = vehiclesData.map(vehicle => ({
+        id: vehicle.id,
+        licensePlate: vehicle.plate_number,
+        vehicleType: vehicle.type === 1 ? 'Xe Bus' : vehicle.type === 2 ? 'Xe Van' : 'Chưa xác định',
+        capacity: vehicle.capacity,
+        brand: vehicle.brand || '-',
+        model: vehicle.model || '-',
+        year: vehicle.year,
+        color: vehicle.color || '-',
+        status: vehicle.status === 1 ? 'Hoạt động' : 'Bảo trì',
+        // Keep original fields for editing
+        plate_number: vehicle.plate_number,
+        type: vehicle.type,
+      }))
+
+      setVehicles(mappedVehicles)
     } catch (error) {
       console.error('Error fetching vehicles:', error)
-      // Mock data for demo
-      setVehicles([
-        {
-          id: 1,
-          licensePlate: '29B-12345',
-          vehicleType: 'Xe Bus',
-          capacity: 30,
-          brand: 'Hyundai',
-          model: 'County',
-          year: 2022,
-          color: 'Vàng',
-          status: 'Hoạt động',
-        },
-        {
-          id: 2,
-          licensePlate: '30A-67890',
-          vehicleType: 'Xe Bus',
-          capacity: 25,
-          brand: 'Toyota',
-          model: 'Coaster',
-          year: 2021,
-          color: 'Trắng',
-          status: 'Hoạt động',
-        },
-      ])
+      setVehicles([])
     } finally {
       setLoading(false)
     }
   }
 
+
   const handleOpenDialog = (vehicle = null) => {
     if (vehicle) {
       setFormData({
-        licensePlate: vehicle.licensePlate,
-        vehicleType: vehicle.vehicleType === 'Xe Bus' ? 'bus' : 'van',
-        capacity: vehicle.capacity.toString(),
-        brand: vehicle.brand,
-        model: vehicle.model,
-        year: vehicle.year.toString(),
-        color: vehicle.color,
-        status: vehicle.status === 'Hoạt động' ? 'active' : 'inactive',
+        plate_number: vehicle.plate_number || vehicle.licensePlate,
+        type: vehicle.type !== null && vehicle.type !== undefined
+          ? vehicle.type
+          : (vehicle.vehicleType === 'Xe Bus' ? 1 : vehicle.vehicleType === 'Xe Van' ? 2 : 1),
+        capacity: vehicle.capacity?.toString() || '',
+        brand: vehicle.brand || '',
+        model: vehicle.model || '',
+        year: vehicle.year?.toString() || '',
+        color: vehicle.color || '',
+        status: vehicle.status === 'Hoạt động' || vehicle.status === 1 ? 1 : 0,
       })
       setEditingId(vehicle.id)
     } else {
@@ -113,11 +124,14 @@ const Vehicles = () => {
   const handleSubmit = async () => {
     try {
       const dataToSubmit = {
-        ...formData,
-        vehicleType: formData.vehicleType === 'bus' ? 'Xe Bus' : 'Xe Van',
+        type: parseInt(formData.type),
+        plate_number: formData.plate_number.trim(),
         capacity: parseInt(formData.capacity),
         year: parseInt(formData.year),
-        status: formData.status === 'active' ? 'Hoạt động' : 'Bảo trì',
+        brand: formData.brand.trim(),
+        model: formData.model.trim(),
+        color: formData.color.trim(),
+        status: parseInt(formData.status),
       }
 
       if (editingId) {
@@ -139,9 +153,12 @@ const Vehicles = () => {
       handleCloseDialog()
     } catch (error) {
       console.error('Error saving vehicle:', error)
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        (editingId ? 'Không thể cập nhật phương tiện!' : 'Không thể thêm phương tiện!')
       setSnackbar({
         open: true,
-        message: 'Có lỗi xảy ra!',
+        message: errorMessage,
         severity: 'error',
       })
     }
@@ -155,7 +172,7 @@ const Vehicles = () => {
         message: 'Xóa phương tiện thành công!',
         severity: 'success',
       })
-      fetchVehicles()
+      fetchVehicles(page + 1, rowsPerPage)
     } catch (error) {
       console.error('Error deleting vehicle:', error)
       setSnackbar({
@@ -169,13 +186,17 @@ const Vehicles = () => {
     }
   }
 
+  const handlePageChange = (event, value) => {
+    setPage(value)
+  }
+
   const columns = [
     { id: 'licensePlate', label: 'Biển số xe' },
     { id: 'vehicleType', label: 'Loại xe' },
-    { id: 'capacity', label: 'Số chỗ' },
+    { id: 'capacity', label: 'Sức chứa' },
     { id: 'brand', label: 'Hãng xe' },
-    { id: 'model', label: 'Model' },
-    { id: 'year', label: 'Năm SX' },
+    { id: 'model', label: 'Dòng xe' },
+    { id: 'year', label: 'Năm sản xuất' },
     { id: 'color', label: 'Màu sắc' },
     { id: 'status', label: 'Trạng thái', type: 'status' },
   ]
@@ -210,6 +231,21 @@ const Vehicles = () => {
         searchPlaceholder="Tìm kiếm phương tiện..."
       />
 
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Tổng số: {totalRecords} phương tiện
+        </Typography>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={handlePageChange}
+          color="primary"
+          showFirstButton
+          showLastButton
+        />
+      </Box>
+
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingId ? 'Chỉnh sửa phương tiện' : 'Thêm phương tiện mới'}
@@ -220,9 +256,9 @@ const Vehicles = () => {
               <TextField
                 fullWidth
                 label="Biển số xe"
-                value={formData.licensePlate}
+                value={formData.plate_number}
                 onChange={(e) =>
-                  setFormData({ ...formData, licensePlate: e.target.value })
+                  setFormData({ ...formData, plate_number: e.target.value })
                 }
                 required
                 placeholder="VD: 29B-12345"
@@ -233,14 +269,14 @@ const Vehicles = () => {
                 fullWidth
                 select
                 label="Loại xe"
-                value={formData.vehicleType}
+                value={formData.type}
                 onChange={(e) =>
-                  setFormData({ ...formData, vehicleType: e.target.value })
+                  setFormData({ ...formData, type: e.target.value })
                 }
                 required
               >
-                <MenuItem value="bus">Xe Bus</MenuItem>
-                <MenuItem value="van">Xe Van</MenuItem>
+                <MenuItem value={1}>Xe Bus</MenuItem>
+                <MenuItem value={2}>Xe Van</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -302,8 +338,8 @@ const Vehicles = () => {
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Hoạt động</MenuItem>
-                <MenuItem value="inactive">Bảo trì</MenuItem>
+                <MenuItem value={1}>Hoạt động</MenuItem>
+                <MenuItem value={0}>Bảo trì</MenuItem>
               </TextField>
             </Grid>
           </Grid>

@@ -23,12 +23,12 @@ import {
   DirectionsBus as BusIcon,
   People as PeopleIcon,
   School as SchoolIcon,
+  FamilyRestroom as ParentsIcon,
   AccountCircle as AccountIcon,
   Route as RouteIcon,
-  LocationOn as LocationOnIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { logout as logoutAPI } from '../services/api'
 
 const drawerWidth = 260
 
@@ -36,9 +36,9 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Quản lý Nhân viên', icon: <PeopleIcon />, path: '/employees' },
   { text: 'Quản lý Học sinh', icon: <SchoolIcon />, path: '/students' },
+  { text: 'Quản lý Phụ huynh', icon: <ParentsIcon />, path: '/parents' },
   { text: 'Quản lý Tài khoản', icon: <AccountIcon />, path: '/accounts' },
   { text: 'Quản lý Phương tiện', icon: <BusIcon />, path: '/vehicles' },
-  { text: 'Quản lý Điểm dừng', icon: <LocationOnIcon />, path: '/bus-stops' },
   { text: 'Quản lý Lộ trình', icon: <RouteIcon />, path: '/routes' },
 ]
 
@@ -47,7 +47,17 @@ const MainLayout = () => {
   const [anchorEl, setAnchorEl] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
+
+  // Get user info from localStorage
+  const getUserInfo = () => {
+    try {
+      const userStr = localStorage.getItem('user')
+      return userStr ? JSON.parse(userStr) : null
+    } catch {
+      return null
+    }
+  }
+  const user = getUserInfo()
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -66,10 +76,21 @@ const MainLayout = () => {
     setAnchorEl(null)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleUserMenuClose()
-    logout()
-    navigate('/login')
+    try {
+      // Call logout API
+      await logoutAPI()
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      // Clear all tokens and user from localStorage
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user')
+      // Redirect to login
+      navigate('/login')
+    }
   }
 
   const drawer = (
@@ -166,11 +187,11 @@ const MainLayout = () => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-              {user?.name || 'Admin'}
+              {user?.username || user?.email || 'Admin'}
             </Typography>
             <IconButton onClick={handleUserMenuOpen} size="small">
               <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
-                {user?.name?.charAt(0) || 'A'}
+                {user?.username?.charAt(0)?.toUpperCase() || 'A'}
               </Avatar>
             </IconButton>
           </Box>

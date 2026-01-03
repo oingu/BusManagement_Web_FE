@@ -7,7 +7,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   IconButton,
   Tooltip,
   Chip,
@@ -31,46 +30,31 @@ const DataTable = ({
   searchable = true,
   searchPlaceholder = 'Tìm kiếm...',
 }) => {
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage)
-  }
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10))
-    setPage(0)
-  }
-
+  // Client-side filtering
   const filteredData = searchable
     ? data.filter((row) =>
-        Object.values(row).some(
-          (value) =>
-            value &&
-            value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-        )
+      Object.values(row).some(
+        (value) =>
+          value &&
+          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
       )
+    )
     : data
-
-  const paginatedData = filteredData.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  )
 
   const renderCellContent = (row, column) => {
     const value = row[column.id]
-    
+
     if (column.render) {
       return column.render(value, row)
     }
-    
+
     if (column.type === 'status') {
       const color = value === 'active' || value === 'Hoạt động' ? 'success' : 'default'
       return <Chip label={value} color={color} size="small" />
     }
-    
+
     return value
   }
 
@@ -112,16 +96,16 @@ const DataTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedData.length === 0 ? (
+            {filteredData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + 2} align="center">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedData.map((row, index) => (
+              filteredData.map((row, index) => (
                 <TableRow key={row.id} hover>
-                  <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                  <TableCell>{index + 1}</TableCell>
                   {columns.map((column) => (
                     <TableCell key={column.id} align={column.align || 'left'}>
                       {renderCellContent(row, column)}
@@ -139,43 +123,34 @@ const DataTable = ({
                         </IconButton>
                       </Tooltip>
                     )}
-                    <Tooltip title="Chỉnh sửa">
-                      <IconButton
-                        color="primary"
-                        size="small"
-                        onClick={() => onEdit(row)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Xóa">
-                      <IconButton
-                        color="error"
-                        size="small"
-                        onClick={() => onDelete(row)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
+                    {onEdit && (
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => onEdit(row)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {onDelete && (
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          color="error"
+                          size="small"
+                          onClick={() => onDelete(row)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={filteredData.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} trong tổng số ${count}`
-          }
-        />
       </TableContainer>
     </Box>
   )

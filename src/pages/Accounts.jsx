@@ -19,11 +19,16 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  Pagination,
+  InputAdornment,
 } from '@mui/material'
-import { 
-  Add as AddIcon, 
+import {
+  Add as AddIcon,
   VpnKey as ResetIcon,
   School as SchoolIcon,
+  FilterList,
+  Visibility,
+  VisibilityOff,
 } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -42,11 +47,11 @@ import {
 const initialFormData = {
   username: '',
   password: '',
-  accountType: 'parent',
-  relatedName: '',
-  relatedPhone: '',
+  accountType: 1,
+  full_name: '',
+  phone_number: '',
   email: '',
-  status: 'active',
+  status: 1,
 }
 
 const Accounts = () => {
@@ -64,49 +69,65 @@ const Accounts = () => {
   const [parentStudents, setParentStudents] = useState([])
   const [allStudents, setAllStudents] = useState([])
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Pagination and filter states
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
+  const [filters, setFilters] = useState({
+    email__like: '',
+    status__equal: '',
+    type__equal: '',
+  })
+  const [openFilterDialog, setOpenFilterDialog] = useState(false)
 
   useEffect(() => {
     fetchAccounts()
-  }, [])
+  }, [page])
 
   const fetchAccounts = async () => {
     try {
-      const response = await getAccounts()
-      setAccounts(response.data)
+      setLoading(true)
+      // Build query params
+      const params = { page }
+
+      // Add filters if they have values
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+          params[key] = filters[key]
+        }
+      })
+
+      const response = await getAccounts(params)
+      const accountsData = response.data.data || response.data
+
+      // Set pagination metadata
+      if (response.data.total !== undefined) {
+        setTotalRecords(response.data.total)
+        setTotalPages(response.data.last_page || 1)
+      }
+
+      // Map API fields to display format
+      const mappedAccounts = accountsData.map(acc => ({
+        id: acc.id,
+        username: acc.username,
+        accountType: acc.type === 1 ? 'Phụ huynh' : 'Phụ xe',
+        relatedName: acc.full_name || '-',
+        relatedPhone: acc.phone_number || '-',
+        email: acc.email || '-',
+        status: acc.status === 1 ? 'Hoạt động' : 'Khóa',
+        studentCount: 0, // Will be updated if needed
+        // Keep original fields for editing
+        full_name: acc.full_name,
+        phone_number: acc.phone_number,
+        type: acc.type,
+      }))
+
+      setAccounts(mappedAccounts)
     } catch (error) {
       console.error('Error fetching accounts:', error)
-      // Mock data for demo
-      setAccounts([
-        {
-          id: 1,
-          username: 'phuhuynhnguyen',
-          accountType: 'Phụ huynh',
-          relatedName: 'Nguyễn Văn Cha',
-          relatedPhone: '0901234567',
-          email: 'nguyen@example.com',
-          status: 'Hoạt động',
-          studentCount: 2,
-        },
-        {
-          id: 2,
-          username: 'phuhuynh.tran',
-          accountType: 'Phụ huynh',
-          relatedName: 'Trần Văn Cha',
-          relatedPhone: '0902345678',
-          email: 'tran@example.com',
-          status: 'Hoạt động',
-          studentCount: 1,
-        },
-        {
-          id: 3,
-          username: 'phuxetran',
-          accountType: 'Phụ xe',
-          relatedName: 'Trần Thị B',
-          relatedPhone: '0987654321',
-          email: 'tranthib@example.com',
-          status: 'Hoạt động',
-        },
-      ])
+      setAccounts([])
     } finally {
       setLoading(false)
     }
@@ -117,11 +138,11 @@ const Accounts = () => {
       setFormData({
         username: account.username,
         password: '',
-        accountType: account.accountType === 'Phụ huynh' ? 'parent' : 'attendant',
-        relatedName: account.relatedName,
-        relatedPhone: account.relatedPhone,
+        accountType: account.accountType === 'Phụ huynh' ? 1 : 2,
+        full_name: account.relatedName,
+        phone_number: account.relatedPhone,
         email: account.email || '',
-        status: account.status === 'Hoạt động' ? 'active' : 'inactive',
+        status: account.status === 'Hoạt động' ? 1 : 0,
       })
       setEditingId(account.id)
     } else {
@@ -140,9 +161,13 @@ const Accounts = () => {
   const handleSubmit = async () => {
     try {
       const dataToSubmit = {
-        ...formData,
-        accountType: formData.accountType === 'parent' ? 'Phụ huynh' : 'Phụ xe',
-        status: formData.status === 'active' ? 'Hoạt động' : 'Khóa',
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        status: formData.status,
+        type: formData.accountType,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number,
       }
 
       if (editingId) {
@@ -170,7 +195,7 @@ const Accounts = () => {
       console.error('Error saving account:', error)
       setSnackbar({
         open: true,
-        message: 'Có lỗi xảy ra!',
+        message: error.response?.data?.message || 'Có lỗi xảy ra!',
         severity: 'error',
       })
     }
@@ -319,6 +344,25 @@ const Accounts = () => {
     }
   }
 
+  const handlePageChange = (event, value) => {
+    setPage(value)
+  }
+
+  const handleApplyFilters = () => {
+    setPage(1)
+    fetchAccounts()
+    setOpenFilterDialog(false)
+  }
+
+  const handleClearFilters = () => {
+    setFilters({
+      email__like: '',
+      status__equal: '',
+      type__equal: '',
+    })
+    setPage(1)
+  }
+
   const columns = [
     { id: 'username', label: 'Tên đăng nhập' },
     { id: 'accountType', label: 'Loại tài khoản' },
@@ -377,13 +421,22 @@ const Accounts = () => {
         <Typography variant="h4" fontWeight="bold">
           Quản lý Tài khoản
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Thêm tài khoản
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FilterList />}
+            onClick={() => setOpenFilterDialog(true)}
+          >
+            Lọc dữ liệu
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Thêm tài khoản
+          </Button>
+        </Box>
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }}>
@@ -401,6 +454,21 @@ const Accounts = () => {
         }}
         searchPlaceholder="Tìm kiếm tài khoản..."
       />
+
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Tổng số: {totalRecords} tài khoản
+        </Typography>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={handlePageChange}
+          color="primary"
+          showFirstButton
+          showLastButton
+        />
+      </Box>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -424,12 +492,24 @@ const Accounts = () => {
               <TextField
                 fullWidth
                 label={editingId ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu'}
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
                 required={!editingId}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -443,17 +523,17 @@ const Accounts = () => {
                 }
                 required
               >
-                <MenuItem value="parent">Phụ huynh</MenuItem>
-                <MenuItem value="attendant">Phụ xe</MenuItem>
+                <MenuItem value={1}>Phụ huynh</MenuItem>
+                <MenuItem value={2}>Phụ xe</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Tên người dùng"
-                value={formData.relatedName}
+                value={formData.full_name}
                 onChange={(e) =>
-                  setFormData({ ...formData, relatedName: e.target.value })
+                  setFormData({ ...formData, full_name: e.target.value })
                 }
                 required
               />
@@ -462,9 +542,9 @@ const Accounts = () => {
               <TextField
                 fullWidth
                 label="Số điện thoại"
-                value={formData.relatedPhone}
+                value={formData.phone_number}
                 onChange={(e) =>
-                  setFormData({ ...formData, relatedPhone: e.target.value })
+                  setFormData({ ...formData, phone_number: e.target.value })
                 }
                 required
               />
@@ -486,8 +566,8 @@ const Accounts = () => {
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Hoạt động</MenuItem>
-                <MenuItem value="inactive">Khóa</MenuItem>
+                <MenuItem value={1}>Hoạt động</MenuItem>
+                <MenuItem value={0}>Khóa</MenuItem>
               </TextField>
             </Grid>
           </Grid>
@@ -606,6 +686,57 @@ const Accounts = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenStudentsDialog(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Filter Dialog */}
+      <Dialog open={openFilterDialog} onClose={() => setOpenFilterDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Lọc dữ liệu tài khoản</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={filters.email__like}
+                onChange={(e) => setFilters({ ...filters, email__like: e.target.value })}
+                placeholder="Tìm kiếm theo email"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Loại tài khoản"
+                value={filters.type__equal}
+                onChange={(e) => setFilters({ ...filters, type__equal: e.target.value })}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value={1}>Phụ huynh</MenuItem>
+                <MenuItem value={2}>Phụ xe</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Trạng thái"
+                value={filters.status__equal}
+                onChange={(e) => setFilters({ ...filters, status__equal: e.target.value })}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value={1}>Hoạt động</MenuItem>
+                <MenuItem value={0}>Khóa</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClearFilters}>Xóa bộ lọc</Button>
+          <Button onClick={() => setOpenFilterDialog(false)}>Hủy</Button>
+          <Button onClick={handleApplyFilters} variant="contained">
+            Áp dụng
+          </Button>
         </DialogActions>
       </Dialog>
 

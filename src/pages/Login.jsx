@@ -16,32 +16,57 @@ import {
   Visibility,
   VisibilityOff,
   DirectionsBus,
+  Email as EmailIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { login as loginAPI } from '../services/api'
 
 const Login = () => {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
+
+    // Validation
+    if (!formData.email || !formData.password) {
+      setError('Vui lòng điền đầy đủ thông tin!')
+      return
+    }
 
     try {
-      const result = await login(username, password)
-      if (result.success) {
-        navigate('/')
-      } else {
-        setError(result.error)
-      }
+      setLoading(true)
+      const response = await loginAPI({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      // Extract token from nested response: response.data.token.access_token
+      const tokenData = response.data.token
+      const accessToken = tokenData.access_token
+      const refreshToken = tokenData.refresh_token
+
+      // Save tokens and user info to localStorage
+      localStorage.setItem('access_token', accessToken)
+      localStorage.setItem('refresh_token', refreshToken)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+
+      // Redirect to dashboard
+      navigate('/')
     } catch (err) {
-      setError('Đã xảy ra lỗi. Vui lòng thử lại.')
+      console.error('Login error:', err)
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.errors?.email?.[0] ||
+        err.response?.data?.errors?.password?.[0] ||
+        'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -98,14 +123,23 @@ const Login = () => {
             <form onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Tên đăng nhập"
+                label="Email"
+                type="email"
                 variant="outlined"
                 margin="normal"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 autoFocus
-                autoComplete="username"
+                autoComplete="email"
+                placeholder="admin@gmail.com"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
               />
               <TextField
                 fullWidth
@@ -113,11 +147,17 @@ const Login = () => {
                 variant="outlined"
                 margin="normal"
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 autoComplete="current-password"
+                placeholder="••••••••"
                 InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
@@ -150,7 +190,7 @@ const Login = () => {
             <Alert severity="info" sx={{ mt: 3 }}>
               <strong>Tài khoản demo:</strong>
               <br />
-              Tên đăng nhập: <strong>admin</strong>
+              Email: <strong>admin@gmail.com</strong>
               <br />
               Mật khẩu: <strong>admin123</strong>
             </Alert>

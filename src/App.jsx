@@ -1,17 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './contexts/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
 import Students from './pages/Students'
+import Parents from './pages/Parents'
 import Accounts from './pages/Accounts'
 import Vehicles from './pages/Vehicles'
 import RoutesPage from './pages/Routes'
-import BusStops from './pages/BusStops'
 
 function App() {
-  const { isAuthenticated } = useAuth()
+  const isAuthenticated = !!localStorage.getItem('access_token')
 
   return (
     <Routes>
@@ -20,19 +20,20 @@ function App() {
       } />
 
       <Route path="/" element={
-        isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
       }>
         <Route index element={<Dashboard />} />
         <Route path="employees" element={<Employees />} />
         <Route path="students" element={<Students />} />
+        <Route path="parents" element={<Parents />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="routes" element={<RoutesPage />} />
-        <Route path="bus-stops" element={<BusStops />} />
       </Route>
     </Routes>
   )
 }
 
 export default App
-

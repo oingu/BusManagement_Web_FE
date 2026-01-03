@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // API Base URL - cập nhật theo backend của bạn
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://34.61.124.56/api/v1'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,10 +10,25 @@ const api = axios.create({
   },
 })
 
+// Flag to prevent multiple refresh attempts
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
 // Add token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -24,48 +39,105 @@ api.interceptors.request.use(
   }
 )
 
-// Handle response errors
+// Handle response errors with refresh token logic
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue requests while refreshing
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest)
+        }).catch(err => Promise.reject(err))
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      const refreshToken = localStorage.getItem('refresh_token')
+
+      if (!refreshToken) {
+        // No refresh token, redirect to login
+        clearTokensAndRedirect()
+        return Promise.reject(error)
+      }
+
+      try {
+        // Call refresh token API
+        const response = await axios.post(`${API_BASE_URL}/refresh`, {
+          refresh_token: refreshToken
+        })
+
+        const newAccessToken = response.data.token?.access_token || response.data.access_token
+        const newRefreshToken = response.data.token?.refresh_token || response.data.refresh_token
+
+        // Save new tokens
+        localStorage.setItem('access_token', newAccessToken)
+        if (newRefreshToken) {
+          localStorage.setItem('refresh_token', newRefreshToken)
+        }
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+        processQueue(null, newAccessToken)
+
+        return api(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        clearTokensAndRedirect()
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
+
     return Promise.reject(error)
   }
 )
 
+// Helper function to clear tokens and redirect
+const clearTokensAndRedirect = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
+  window.location.href = '/login'
+}
+
 // Authentication
-export const login = (username, password) => {
-  return api.post('/auth/login', { username, password })
+export const login = (data) => {
+  return api.post('/login', data)
 }
 
 export const logout = () => {
-  return api.post('/auth/logout')
+  const token = localStorage.getItem('access_token')
+  return api.post('/logout', { token })
 }
 
 // Employees (Nhân viên)
-export const getEmployees = () => api.get('/employees')
-export const getEmployee = (id) => api.get(`/employees/${id}`)
-export const createEmployee = (data) => api.post('/employees', data)
-export const updateEmployee = (id, data) => api.put(`/employees/${id}`, data)
-export const deleteEmployee = (id) => api.delete(`/employees/${id}`)
+export const getEmployees = (params) => api.get('/drivers', { params })
+export const getEmployee = (id) => api.get(`/drivers/${id}`)
+export const createEmployee = (data) => api.post('/drivers', data)
+export const updateEmployee = (id, data) => api.put(`/drivers/${id}`, data)
+export const deleteEmployee = (id) => api.delete(`/drivers/${id}`)
 
 // Students (Học sinh)
-export const getStudents = () => api.get('/students')
+export const getStudents = (params) => api.get('/students', { params })
 export const getStudent = (id) => api.get(`/students/${id}`)
 export const createStudent = (data) => api.post('/students', data)
 export const updateStudent = (id, data) => api.put(`/students/${id}`, data)
 export const deleteStudent = (id) => api.delete(`/students/${id}`)
 
 // Accounts (Tài khoản)
-export const getAccounts = () => api.get('/accounts')
-export const getAccount = (id) => api.get(`/accounts/${id}`)
-export const createAccount = (data) => api.post('/accounts', data)
-export const updateAccount = (id, data) => api.put(`/accounts/${id}`, data)
-export const deleteAccount = (id) => api.delete(`/accounts/${id}`)
+export const getAccounts = (params) => api.get('/users', { params })
+export const getAccount = (id) => api.get(`/users/${id}`)
+export const createAccount = (data) => api.post('/users', data)
+export const updateAccount = (id, data) => api.put(`/users/${id}`, data)
+export const deleteAccount = (id) => api.delete(`/users/${id}`)
 export const resetPassword = (id) => api.post(`/accounts/${id}/reset-password`)
 // Get parent accounts only
 export const getParentAccounts = () => api.get('/accounts/parents')
@@ -77,31 +149,36 @@ export const unlinkStudentFromParent = (parentId, studentId) =>
 export const getStudentsByParent = (parentId) =>
   api.get(`/accounts/${parentId}/students`)
 
+// Student Parents (Phụ huynh học sinh)
+export const getStudentParents = (params) => api.get('/student-parents', { params })
+export const getStudentParent = (id) => api.get(`/student-parents/${id}`)
+export const createStudentParent = (data) => api.post('/student-parents', data)
+export const updateStudentParent = (id, data) => api.put(`/student-parents/${id}`, data)
+export const deleteStudentParent = (id) => api.delete(`/student-parents/${id}`)
+
 // Vehicles (Phương tiện)
-export const getVehicles = () => api.get('/vehicles')
+export const getVehicles = (params = {}) => {
+  const queryParams = new URLSearchParams()
+  if (params.page) queryParams.append('page', params.page)
+  if (params.per_page) queryParams.append('per_page', params.per_page)
+  const queryString = queryParams.toString()
+  return api.get(`/vehicles${queryString ? `?${queryString}` : ''}`)
+}
 export const getVehicle = (id) => api.get(`/vehicles/${id}`)
 export const createVehicle = (data) => api.post('/vehicles', data)
 export const updateVehicle = (id, data) => api.put(`/vehicles/${id}`, data)
 export const deleteVehicle = (id) => api.delete(`/vehicles/${id}`)
 
-// Routes (Lộ trình)
-export const getRoutes = () => api.get('/routes')
-export const getRoute = (id) => api.get(`/routes/${id}`)
-export const createRoute = (data) => api.post('/routes', data)
-export const updateRoute = (id, data) => api.put(`/routes/${id}`, data)
-export const deleteRoute = (id) => api.delete(`/routes/${id}`)
+// Routes/Trips (Lộ trình)
+export const getRoutes = (params) => api.get('/trips', { params })
+export const getRoute = (id) => api.get(`/trips/${id}`)
+export const createRoute = (data) => api.post('/trips', data)
+export const updateRoute = (id, data) => api.put(`/trips/${id}`, data)
+export const deleteRoute = (id) => api.delete(`/trips/${id}`)
 export const assignStudentsToRoute = (routeId, studentIds) =>
-  api.post(`/routes/${routeId}/students`, { studentIds })
+  api.post(`/trips/${routeId}/students`, { studentIds })
 export const removeStudentFromRoute = (routeId, studentId) =>
-  api.delete(`/routes/${routeId}/students/${studentId}`)
-
-// Bus Stops (Điểm dừng đón trả)
-export const getBusStops = () => api.get('/bus-stops')
-export const getBusStop = (id) => api.get(`/bus-stops/${id}`)
-export const createBusStop = (data) => api.post('/bus-stops', data)
-export const updateBusStop = (id, data) => api.put(`/bus-stops/${id}`, data)
-export const deleteBusStop = (id) => api.delete(`/bus-stops/${id}`)
-
+  api.delete(`/trips/${routeId}/students/${studentId}`)
 
 // Dashboard statistics
 export const getDashboardStats = () => api.get('/dashboard/stats')

@@ -18,40 +18,39 @@ import {
   Chip,
   Divider,
   Stack,
+  Pagination,
 } from '@mui/material'
-import { Add as AddIcon, Info as InfoIcon, Map as MapIcon, PhotoCamera } from '@mui/icons-material'
+import { Add as AddIcon, Info as InfoIcon, Map as MapIcon, PhotoCamera, FilterList } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import MapPicker from '../components/MapPicker'
 import {
   getStudents,
+  getStudent,
   createStudent,
   updateStudent,
   deleteStudent,
-  getParentAccounts,
-  getBusStops,
+  getStudentParents,
 } from '../services/api'
 
 const initialFormData = {
-  name: '',
-  studentCode: '',
+  student_number: '',
+  email: '',
+  full_name: '',
+  phone: '',
+  gender: 1,
+  dob: '',
   grade: '',
-  className: '',
-  parentName: '',
-  parentPhone: '',
-  parentAccountId: '',
-  busStopId: '',
   address: '',
+  student_parent_id: '',
   latitude: '',
   longitude: '',
-  status: 'active',
-  photo: '',
+  status: 1,
 }
 
 const Students = () => {
   const [students, setStudents] = useState([])
   const [parents, setParents] = useState([])
-  const [busStops, setBusStops] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
@@ -64,60 +63,91 @@ const Students = () => {
   const [tabValue, setTabValue] = useState(0)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
+  // Pagination and filter states
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
+  const [filters, setFilters] = useState({
+    student_number__equal: '',
+    student_number__like: '',
+    email__like: '',
+    full_name__like: '',
+    phone__like: '',
+    gender__equal: '',
+    grade__equal: '',
+    status__equal: '',
+    address__like: '',
+    student_parent_id__equal: '',
+  })
+  const [openFilterDialog, setOpenFilterDialog] = useState(false)
+
   useEffect(() => {
     fetchStudents()
     fetchParents()
-    fetchBusStops()
-  }, [])
+  }, [page])
 
   const fetchParents = async () => {
     try {
-      const response = await getParentAccounts()
-      setParents(response.data)
+      const response = await getStudentParents({})
+      const parentsData = response.data.data || response.data
+      setParents(parentsData)
     } catch (error) {
       console.error('Error fetching parents:', error)
-      // Mock data for demo
-      setParents([
-        {
-          id: 1,
-          username: 'phuhuynhnguyen',
-          relatedName: 'Nguyễn Văn Cha',
-          relatedPhone: '0901234567',
-        },
-        {
-          id: 2,
-          username: 'phuhuynh.tran',
-          relatedName: 'Trần Văn Cha',
-          relatedPhone: '0902345678',
-        },
-      ])
-    }
-  }
-
-  const fetchBusStops = async () => {
-    const mockData = [
-      { id: 1, name: 'Ngã tư Lê Văn Lương', latitude: 21.0285, longitude: 105.8542, address: 'Số 123 Lê Văn Lương, Thanh Xuân, Hà Nội', status: 'Hoạt động' },
-      { id: 2, name: 'Ngã tư Trung Hòa - Nhân Chính', latitude: 21.0055, longitude: 105.8136, address: 'Ngã tư Trung Hòa - Nhân Chính, Cầu Giấy, Hà Nội', status: 'Hoạt động' },
-      { id: 3, name: 'Bến xe Mỹ Đình', latitude: 21.0277, longitude: 105.7800, address: 'Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội', status: 'Hoạt động' },
-    ]
-    try {
-      const response = await getBusStops()
-      setBusStops(response.data && response.data.length > 0 ? response.data.filter(s => s.status === 'Hoạt động') : mockData)
-    } catch (error) {
-      console.error('Error fetching bus stops:', error)
-      setBusStops(mockData)
+      setParents([])
     }
   }
 
   const fetchStudents = async () => {
     try {
-      const response = await getStudents()
-      setStudents(response.data)
+      setLoading(true)
+      // Build query params
+      const params = { page }
+
+      // Add filters if they have values
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+          params[key] = filters[key]
+        }
+      })
+
+      const response = await getStudents(params)
+      const studentsData = response.data.data || response.data
+
+      // Set pagination metadata
+      if (response.data.total !== undefined) {
+        setTotalRecords(response.data.total)
+        setTotalPages(response.data.last_page || 1)
+      }
+
+      // Map API fields to display format
+      const mappedStudents = studentsData.map(student => ({
+        id: student.id,
+        studentCode: student.student_number,
+        name: student.full_name,
+        email: student.email || '-',
+        phone: student.phone || '-',
+        gender: student.gender === 1 ? 'Nam' : 'Nữ',
+        dob: student.dob,
+        grade: student.grade,
+        className: `${student.grade}A`, // You might need to adjust this based on actual data
+        address: student.address || '-',
+        parentName: '-', // Will be populated if needed
+        parentPhone: '-', // Will be populated if needed
+        parentAccountId: student.student_parent_id,
+        latitude: student.latitude,
+        longitude: student.longitude,
+        status: student.status === 1 ? 'Hoạt động' : 'Ngừng đi xe',
+        photo: 'https://i.pravatar.cc/150', // Default photo
+        // Keep original fields for editing
+        student_number: student.student_number,
+        full_name: student.full_name,
+        student_parent_id: student.student_parent_id,
+      }))
+
+      setStudents(mappedStudents)
     } catch (error) {
       console.error('Error fetching students:', error)
-      // Mock data for demo - import from mockRoutingData
-      const { MOCK_STUDENTS_WITH_LOCATION } = await import('../services/mockRoutingData')
-      setStudents(MOCK_STUDENTS_WITH_LOCATION)
+      setStudents([])
     } finally {
       setLoading(false)
     }
@@ -125,34 +155,53 @@ const Students = () => {
 
   const handleOpenDialog = (student = null) => {
     if (student) {
+      // Use original API fields that were kept during mapping
       setFormData({
-        name: student.name,
-        studentCode: student.studentCode,
-        grade: student.grade,
-        className: student.className,
-        parentName: student.parentName,
-        parentPhone: student.parentPhone,
-        parentAccountId: student.parentAccountId?.toString() || '',
-        busStopId: student.busStopId?.toString() || '',
-        address: student.address,
+        student_number: student.student_number || '',
+        email: student.email === '-' ? '' : (student.email || ''),
+        full_name: student.full_name || student.name || '',
+        phone: student.phone === '-' ? '' : (student.phone || ''),
+        gender: student.gender === 'Nam' ? 1 : student.gender === 'Nữ' ? 0 : (student.gender || 1),
+        dob: student.dob || '',
+        grade: student.grade || '',
+        address: student.address === '-' ? '' : (student.address || ''),
+        student_parent_id: student.student_parent_id || '',
         latitude: student.latitude?.toString() || '',
         longitude: student.longitude?.toString() || '',
-        status: student.status === 'Hoạt động' ? 'active' : 'inactive',
-        photo: student.photo || '',
+        status: student.status === 'Hoạt động' ? 1 : 0,
       })
-      setPhotoPreview(student.photo || '')
       setEditingId(student.id)
     } else {
       setFormData(initialFormData)
-      setPhotoPreview('')
-      setEditingId(null)
     }
     setOpenDialog(true)
   }
 
-  const handleOpenViewDialog = (student) => {
-    setViewingStudent(student)
-    setOpenViewDialog(true)
+  const handleOpenViewDialog = async (student) => {
+    try {
+      setLoading(true)
+      // Fetch detailed student information from API
+      const response = await getStudent(student.id)
+      const studentDetail = response.data
+
+      // Set the detailed student data for viewing
+      setViewingStudent({
+        ...studentDetail,
+        // Add display-friendly fields
+        genderDisplay: studentDetail.gender === 1 ? 'Nam' : 'Nữ',
+        statusDisplay: studentDetail.status === 1 ? 'Hoạt động' : 'Ngừng đi xe',
+      })
+      setOpenViewDialog(true)
+    } catch (error) {
+      console.error('Error fetching student details:', error)
+      setSnackbar({
+        open: true,
+        message: 'Không thể tải thông tin chi tiết học sinh!',
+        severity: 'error',
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCloseViewDialog = () => {
@@ -180,22 +229,6 @@ const Students = () => {
     }
   }
 
-  const handleBusStopChange = (event) => {
-    const selectedId = event.target.value
-    const selectedStop = busStops.find(stop => stop.id.toString() === selectedId)
-    if (selectedStop) {
-      setFormData({
-        ...formData,
-        busStopId: selectedId,
-        address: selectedStop.address,
-        latitude: selectedStop.latitude.toString(),
-        longitude: selectedStop.longitude.toString(),
-      })
-    } else {
-      setFormData({ ...formData, busStopId: '' })
-    }
-  }
-
   const handleLocationChange = (lat, lng) => {
     setFormData({
       ...formData,
@@ -206,12 +239,29 @@ const Students = () => {
 
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      if (!formData.student_number || !formData.full_name || !formData.grade) {
+        setSnackbar({
+          open: true,
+          message: 'Vui lòng điền đầy đủ thông tin bắt buộc (Mã HS, Họ tên, Khối)',
+          severity: 'warning',
+        })
+        return
+      }
+
       const dataToSubmit = {
-        ...formData,
-        busStopId: formData.busStopId ? parseInt(formData.busStopId) : null,
-        latitude: parseFloat(formData.latitude) || null,
-        longitude: parseFloat(formData.longitude) || null,
-        status: formData.status === 'active' ? 'Hoạt động' : 'Ngừng đi xe',
+        student_number: formData.student_number.trim(),
+        email: formData.email?.trim() || '',
+        full_name: formData.full_name.trim(),
+        phone: formData.phone?.trim() || '',
+        gender: parseInt(formData.gender),
+        dob: formData.dob || null,
+        grade: parseInt(formData.grade),
+        address: formData.address?.trim() || '',
+        student_parent_id: formData.student_parent_id ? parseInt(formData.student_parent_id) : null,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        status: parseInt(formData.status),
       }
 
       if (editingId) {
@@ -233,9 +283,12 @@ const Students = () => {
       handleCloseDialog()
     } catch (error) {
       console.error('Error saving student:', error)
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        (editingId ? 'Không thể cập nhật học sinh!' : 'Không thể thêm học sinh!')
       setSnackbar({
         open: true,
-        message: 'Có lỗi xảy ra!',
+        message: errorMessage,
         severity: 'error',
       })
     }
@@ -249,18 +302,52 @@ const Students = () => {
         message: 'Xóa học sinh thành công!',
         severity: 'success',
       })
-      fetchStudents()
+      // Reset to page 1 if current page becomes empty after deletion
+      if (students.length === 1 && page > 1) {
+        setPage(page - 1)
+      } else {
+        fetchStudents()
+      }
     } catch (error) {
       console.error('Error deleting student:', error)
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Không thể xóa học sinh. Vui lòng thử lại!'
       setSnackbar({
         open: true,
-        message: 'Có lỗi xảy ra!',
+        message: errorMessage,
         severity: 'error',
       })
     } finally {
       setOpenConfirm(false)
       setDeleteId(null)
     }
+  }
+
+  const handlePageChange = (event, value) => {
+    setPage(value)
+  }
+
+  const handleApplyFilters = () => {
+    setPage(1)
+    fetchStudents()
+    setOpenFilterDialog(false)
+  }
+
+  const handleClearFilters = () => {
+    setFilters({
+      student_number__equal: '',
+      student_number__like: '',
+      email__like: '',
+      full_name__like: '',
+      phone__like: '',
+      gender__equal: '',
+      grade__equal: '',
+      status__equal: '',
+      address__like: '',
+      student_parent_id__equal: '',
+    })
+    setPage(1)
   }
 
   const columns = [
@@ -293,13 +380,22 @@ const Students = () => {
         <Typography variant="h4" fontWeight="bold">
           Quản lý Học sinh
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Thêm học sinh
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FilterList />}
+            onClick={() => setOpenFilterDialog(true)}
+          >
+            Lọc dữ liệu
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Thêm học sinh
+          </Button>
+        </Box>
       </Box>
 
       <DataTable
@@ -313,6 +409,21 @@ const Students = () => {
         }}
         searchPlaceholder="Tìm kiếm học sinh..."
       />
+
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Tổng số: {totalRecords} học sinh
+        </Typography>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={handlePageChange}
+          color="primary"
+          showFirstButton
+          showLastButton
+        />
+      </Box>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
@@ -365,22 +476,64 @@ const Students = () => {
                     <TextField
                       fullWidth
                       label="Mã học sinh"
-                      value={formData.studentCode}
+                      value={formData.student_number}
                       onChange={(e) =>
-                        setFormData({ ...formData, studentCode: e.target.value })
+                        setFormData({ ...formData, student_number: e.target.value })
                       }
                       required
-                      placeholder="VD: HS001"
+                      placeholder="VD: SV20225107"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Họ và tên"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       required
                       placeholder="Nhập họ và tên đầy đủ"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="VD: student@example.com"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Số điện thoại"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="VD: 0987654321"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Giới tính"
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      required
+                    >
+                      <MenuItem value={1}>Nam</MenuItem>
+                      <MenuItem value={0}>Nữ</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Ngày sinh"
+                      type="date"
+                      value={formData.dob}
+                      onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -392,8 +545,8 @@ const Students = () => {
                       onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                       required
                     >
-                      {[1, 2, 3, 4, 5].map((grade) => (
-                        <MenuItem key={grade} value={grade.toString()}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                        <MenuItem key={grade} value={grade}>
                           Khối {grade}
                         </MenuItem>
                       ))}
@@ -402,25 +555,13 @@ const Students = () => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Lớp"
-                      value={formData.className}
-                      onChange={(e) =>
-                        setFormData({ ...formData, className: e.target.value })
-                      }
-                      required
-                      placeholder="VD: 5A, 4B"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
                       select
                       label="Trạng thái"
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     >
-                      <MenuItem value="active">Hoạt động</MenuItem>
-                      <MenuItem value="inactive">Ngừng đi xe</MenuItem>
+                      <MenuItem value={1}>Hoạt động</MenuItem>
+                      <MenuItem value={0}>Ngừng đi xe</MenuItem>
                     </TextField>
                   </Grid>
                 </Grid>
@@ -438,54 +579,25 @@ const Students = () => {
                     <TextField
                       fullWidth
                       select
-                      label="Tài khoản phụ huynh"
-                      value={formData.parentAccountId}
+                      label="Phụ huynh"
+                      value={formData.student_parent_id}
                       onChange={(e) => {
-                        const selectedParent = parents.find(p => p.id.toString() === e.target.value)
                         setFormData({
                           ...formData,
-                          parentAccountId: e.target.value,
-                          parentName: selectedParent?.relatedName || '',
-                          parentPhone: selectedParent?.relatedPhone || '',
+                          student_parent_id: e.target.value,
                         })
                       }}
-                      helperText="Liên kết với tài khoản phụ huynh trên ứng dụng mobile"
+                      helperText="Chọn phụ huynh từ danh sách (user_id sẽ được gửi tới API)"
                     >
                       <MenuItem value="">
                         <em>Chưa liên kết</em>
                       </MenuItem>
                       {parents.map((parent) => (
-                        <MenuItem key={parent.id} value={parent.id.toString()}>
-                          {parent.relatedName} - {parent.relatedPhone} ({parent.username})
+                        <MenuItem key={parent.id} value={parent.user_id}>
+                          {parent.full_name} - {parent.phone_number} (User ID: {parent.user_id})
                         </MenuItem>
                       ))}
                     </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Tên phụ huynh"
-                      value={formData.parentName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, parentName: e.target.value })
-                      }
-                      required
-                      placeholder="Nhập tên phụ huynh"
-                      helperText="Tự động điền khi chọn tài khoản"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Số điện thoại phụ huynh"
-                      value={formData.parentPhone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, parentPhone: e.target.value })
-                      }
-                      required
-                      placeholder="VD: 0901234567"
-                      helperText="Tự động điền khi chọn tài khoản"
-                    />
                   </Grid>
                 </Grid>
               </Box>
@@ -547,27 +659,8 @@ const Students = () => {
 
           {tabValue === 1 && (
             <Box sx={{ mt: 2 }}>
-              <TextField
-                fullWidth
-                select
-                label="Chọn điểm dừng có sẵn"
-                value={formData.busStopId}
-                onChange={handleBusStopChange}
-                sx={{ mb: 3 }}
-                helperText="Chọn điểm dừng sẽ tự động điền tọa độ và địa chỉ vào bản đồ"
-              >
-                <MenuItem value="">
-                  <em>Không chọn - Click trên bản đồ để chọn vị trí tùy chỉnh</em>
-                </MenuItem>
-                {busStops.map((stop) => (
-                  <MenuItem key={stop.id} value={stop.id.toString()}>
-                    {stop.name} - {stop.address}
-                  </MenuItem>
-                ))}
-              </TextField>
-
               <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Hoặc click trực tiếp trên bản đồ để chọn vị trí đón/trả học sinh
+                Click trên bản đồ để chọn vị trí đón/trả học sinh chính xác
               </Typography>
               <MapPicker
                 latitude={formData.latitude}
@@ -590,49 +683,75 @@ const Students = () => {
       </Dialog>
 
       {/* Dialog xem chi tiết */}
-      <Dialog open={openViewDialog} onClose={handleCloseViewDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openViewDialog} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
         <DialogTitle>Chi tiết học sinh</DialogTitle>
         <DialogContent>
           {viewingStudent && (
             <Box sx={{ pt: 2 }}>
-              {/* Ảnh đại diện */}
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-                <Avatar
-                  src={viewingStudent.photo}
-                  sx={{ width: 150, height: 150 }}
-                />
-              </Box>
-
               {/* Thông tin chi tiết */}
-              <Grid container spacing={2}>
+              <Grid container spacing={3}>
                 <Grid item xs={12}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Thông tin cơ bản
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Mã học sinh
+                  </Typography>
+                  <Typography variant="body1" fontWeight="bold">
+                    {viewingStudent.student_number}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
                     Họ và tên
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
-                    {viewingStudent.name}
+                    {viewingStudent.full_name}
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Mã học sinh
+                    Email
                   </Typography>
                   <Typography variant="body1">
-                    {viewingStudent.studentCode}
+                    {viewingStudent.email || '-'}
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Lớp
+                    Số điện thoại
                   </Typography>
                   <Typography variant="body1">
-                    {viewingStudent.className}
+                    {viewingStudent.phone || '-'}
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Giới tính
+                  </Typography>
+                  <Typography variant="body1">
+                    {viewingStudent.genderDisplay}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày sinh
+                  </Typography>
+                  <Typography variant="body1">
+                    {viewingStudent.dob || '-'}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
                     Khối
                   </Typography>
@@ -641,62 +760,80 @@ const Students = () => {
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
                     Trạng thái
                   </Typography>
                   <Chip
-                    label={viewingStudent.status}
-                    color={viewingStudent.status === 'Hoạt động' ? 'success' : 'default'}
+                    label={viewingStudent.statusDisplay}
+                    color={viewingStudent.status === 1 ? 'success' : 'default'}
                     size="small"
                   />
                 </Grid>
 
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Tên phụ huynh
+                    Địa chỉ
                   </Typography>
                   <Typography variant="body1">
-                    {viewingStudent.parentName}
+                    {viewingStudent.address || '-'}
                   </Typography>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Số điện thoại phụ huynh
-                  </Typography>
-                  <Typography variant="body1">
-                    {viewingStudent.parentPhone}
-                  </Typography>
-                </Grid>
-
-                {viewingStudent.parentAccountName && (
+                {viewingStudent.student_parent_id && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Tài khoản phụ huynh
+                      ID Phụ huynh
                     </Typography>
                     <Typography variant="body1">
-                      {viewingStudent.parentAccountName}
+                      {viewingStudent.student_parent_id}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {(viewingStudent.latitude && viewingStudent.longitude) && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Tọa độ (Vĩ độ, Kinh độ)
+                    </Typography>
+                    <Typography variant="body1">
+                      {viewingStudent.latitude}, {viewingStudent.longitude}
                     </Typography>
                   </Grid>
                 )}
 
                 <Grid item xs={12}>
+                  <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
+                    Thông tin hệ thống
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Địa chỉ đón/trả
+                    Ngày tạo
                   </Typography>
                   <Typography variant="body1">
-                    {viewingStudent.address}
+                    {viewingStudent.created_at ? new Date(viewingStudent.created_at).toLocaleString('vi-VN') : '-'}
                   </Typography>
                 </Grid>
 
-                {viewingStudent.latitude && viewingStudent.longitude && (
-                  <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày cập nhật
+                  </Typography>
+                  <Typography variant="body1">
+                    {viewingStudent.updated_at ? new Date(viewingStudent.updated_at).toLocaleString('vi-VN') : '-'}
+                  </Typography>
+                </Grid>
+
+                {viewingStudent.deleted_at && (
+                  <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Tọa độ
+                      Ngày xóa
                     </Typography>
-                    <Typography variant="body1">
-                      {viewingStudent.latitude}, {viewingStudent.longitude}
+                    <Typography variant="body1" color="error">
+                      {new Date(viewingStudent.deleted_at).toLocaleString('vi-VN')}
                     </Typography>
                   </Grid>
                 )}
@@ -730,6 +867,126 @@ const Students = () => {
         confirmText="Xóa"
         confirmColor="error"
       />
+
+      {/* Filter Dialog */}
+      <Dialog open={openFilterDialog} onClose={() => setOpenFilterDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Lọc dữ liệu học sinh</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Mã học sinh (chính xác)"
+                value={filters.student_number__equal}
+                onChange={(e) => setFilters({ ...filters, student_number__equal: e.target.value })}
+                placeholder="VD: SV515126"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Mã học sinh (tìm kiếm)"
+                value={filters.student_number__like}
+                onChange={(e) => setFilters({ ...filters, student_number__like: e.target.value })}
+                placeholder="VD: SV5151"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={filters.email__like}
+                onChange={(e) => setFilters({ ...filters, email__like: e.target.value })}
+                placeholder="Tìm kiếm theo email"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Tên học sinh"
+                value={filters.full_name__like}
+                onChange={(e) => setFilters({ ...filters, full_name__like: e.target.value })}
+                placeholder="Tìm kiếm theo tên"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                value={filters.phone__like}
+                onChange={(e) => setFilters({ ...filters, phone__like: e.target.value })}
+                placeholder="Tìm kiếm theo SĐT"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Giới tính"
+                value={filters.gender__equal}
+                onChange={(e) => setFilters({ ...filters, gender__equal: e.target.value })}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value={1}>Nam</MenuItem>
+                <MenuItem value={0}>Nữ</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Khối"
+                value={filters.grade__equal}
+                onChange={(e) => setFilters({ ...filters, grade__equal: e.target.value })}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                  <MenuItem key={grade} value={grade}>Khối {grade}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Trạng thái"
+                value={filters.status__equal}
+                onChange={(e) => setFilters({ ...filters, status__equal: e.target.value })}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value={1}>Hoạt động</MenuItem>
+                <MenuItem value={0}>Ngừng đi xe</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Địa chỉ"
+                value={filters.address__like}
+                onChange={(e) => setFilters({ ...filters, address__like: e.target.value })}
+                placeholder="Tìm kiếm theo địa chỉ"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="ID Phụ huynh"
+                value={filters.student_parent_id__equal}
+                onChange={(e) => setFilters({ ...filters, student_parent_id__equal: e.target.value })}
+                placeholder="Nhập ID phụ huynh"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClearFilters}>Xóa bộ lọc</Button>
+          <Button onClick={() => setOpenFilterDialog(false)}>Hủy</Button>
+          <Button onClick={handleApplyFilters} variant="contained">
+            Áp dụng
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}
