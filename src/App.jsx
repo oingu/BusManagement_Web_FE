@@ -9,6 +9,7 @@ import Parents from './pages/Parents'
 import Accounts from './pages/Accounts'
 import Vehicles from './pages/Vehicles'
 import RoutesPage from './pages/Routes'
+import Points from './pages/Points'
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('access_token')
@@ -31,6 +32,7 @@ function App() {
         <Route path="accounts" element={<Accounts />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="routes" element={<RoutesPage />} />
+        <Route path="points" element={<Points />} />
       </Route>
     </Routes>
   )

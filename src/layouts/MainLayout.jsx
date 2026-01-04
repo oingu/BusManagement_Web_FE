@@ -27,6 +27,7 @@ import {
   AccountCircle as AccountIcon,
   Route as RouteIcon,
   Logout as LogoutIcon,
+  LocationOn as LocationIcon,
 } from '@mui/icons-material'
 import { logout as logoutAPI } from '../services/api'
 
@@ -40,6 +41,7 @@ const menuItems = [
   { text: 'Quản lý Tài khoản', icon: <AccountIcon />, path: '/accounts' },
   { text: 'Quản lý Phương tiện', icon: <BusIcon />, path: '/vehicles' },
   { text: 'Quản lý Lộ trình', icon: <RouteIcon />, path: '/routes' },
+  { text: 'Quản lý Điểm dừng', icon: <LocationIcon />, path: '/points' },
 ]
 
 const MainLayout = () => {

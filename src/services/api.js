@@ -127,6 +127,7 @@ export const deleteEmployee = (id) => api.delete(`/drivers/${id}`)
 
 // Students (Học sinh)
 export const getStudents = (params) => api.get('/students', { params })
+export const getAllStudents = () => api.get('/students/all')
 export const getStudent = (id) => api.get(`/students/${id}`)
 export const createStudent = (data) => api.post('/students', data)
 export const updateStudent = (id, data) => api.put(`/students/${id}`, data)
@@ -179,6 +180,13 @@ export const assignStudentsToRoute = (routeId, studentIds) =>
   api.post(`/trips/${routeId}/students`, { studentIds })
 export const removeStudentFromRoute = (routeId, studentId) =>
   api.delete(`/trips/${routeId}/students/${studentId}`)
+
+// Points (Điểm dừng)
+export const getPoints = (params) => api.get('/points', { params })
+export const getPoint = (id) => api.get(`/points/${id}`)
+export const createPoint = (data) => api.post('/points', data)
+export const updatePoint = (id, data) => api.put(`/points/${id}`, data)
+export const deletePoint = (id) => api.delete(`/points/${id}`)
 
 // Dashboard statistics
 export const getDashboardStats = () => api.get('/dashboard/stats')
