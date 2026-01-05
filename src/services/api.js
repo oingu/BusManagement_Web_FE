@@ -180,13 +180,19 @@ export const assignStudentsToRoute = (routeId, studentIds) =>
   api.post(`/trips/${routeId}/students`, { studentIds })
 export const removeStudentFromRoute = (routeId, studentId) =>
   api.delete(`/trips/${routeId}/students/${studentId}`)
+export const getTripPoints = (tripId) => api.get(`/trips/${tripId}/points`)
 
 // Points (Điểm dừng)
 export const getPoints = (params) => api.get('/points', { params })
+export const getAllPoints = () => api.get('/points/all')
 export const getPoint = (id) => api.get(`/points/${id}`)
 export const createPoint = (data) => api.post('/points', data)
 export const updatePoint = (id, data) => api.put(`/points/${id}`, data)
 export const deletePoint = (id) => api.delete(`/points/${id}`)
+
+// Assign students to points in a trip
+export const assignPointStudents = (tripId, data) =>
+  api.post(`/trips/${tripId}/assign-point-students`, data)
 
 // Dashboard statistics
 export const getDashboardStats = () => api.get('/dashboard/stats')

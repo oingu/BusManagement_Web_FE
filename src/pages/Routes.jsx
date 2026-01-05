@@ -32,10 +32,13 @@ import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
   FilterList,
+  LocationOn as LocationIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RouteMap from '../components/RouteMap'
+import TripRouteMap from '../components/TripRouteMap'
+import RoutePointAssigner from '../components/RoutePointAssigner'
 import {
   getRoutes,
   createRoute,
@@ -69,8 +72,10 @@ const Routes = () => {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openMapDialog, setOpenMapDialog] = useState(false)
+  const [openViewRouteDialog, setOpenViewRouteDialog] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
   const [openFilterDialog, setOpenFilterDialog] = useState(false)
+  const [openPointAssigner, setOpenPointAssigner] = useState(false)
   const [formData, setFormData] = useState(initialFormData)
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
@@ -380,7 +385,7 @@ const Routes = () => {
     { id: 'status', label: 'Trạng thái', type: 'status' },
     {
       id: 'map',
-      label: 'Bản đồ',
+      label: 'Lộ trình',
       render: (value, row) => (
         <Button
           size="small"
@@ -388,10 +393,30 @@ const Routes = () => {
           startIcon={<MapIcon />}
           onClick={(e) => {
             e.stopPropagation()
-            handleOpenMapDialog(row)
+            setSelectedRoute(row)
+            setOpenViewRouteDialog(true)
           }}
         >
           Xem
+        </Button>
+      ),
+    },
+    {
+      id: 'assignPoints',
+      label: 'Gán điểm dừng',
+      render: (value, row) => (
+        <Button
+          size="small"
+          variant="contained"
+          color="success"
+          startIcon={<LocationIcon />}
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedRoute(row)
+            setOpenPointAssigner(true)
+          }}
+        >
+          Gán
         </Button>
       ),
     },
@@ -902,6 +927,68 @@ const Routes = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Route Point Assigner Dialog */}
+      <RoutePointAssigner
+        open={openPointAssigner}
+        onClose={() => {
+          setOpenPointAssigner(false)
+          setSelectedRoute(null)
+        }}
+        route={selectedRoute}
+        onSuccess={() => {
+          fetchData()
+          setSnackbar({
+            open: true,
+            message: 'Gán điểm dừng và học sinh thành công!',
+            severity: 'success',
+          })
+        }}
+      />
+
+      {/* View Route Dialog */}
+      <Dialog
+        open={openViewRouteDialog}
+        onClose={() => {
+          setOpenViewRouteDialog(false)
+          setSelectedRoute(null)
+        }}
+        maxWidth="xl"
+        fullWidth
+      >
+        <DialogTitle>
+          🗺️ Lộ trình: {selectedRoute?.name}
+        </DialogTitle>
+        <DialogContent>
+          {selectedRoute && (
+            <TripRouteMap
+              tripId={selectedRoute.id}
+              height="650px"
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenViewRouteDialog(false)
+              setSelectedRoute(null)
+            }}
+          >
+            Đóng
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<LocationIcon />}
+            onClick={() => {
+              setOpenViewRouteDialog(false)
+              setOpenPointAssigner(true)
+            }}
+          >
+            Gán điểm dừng
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
