@@ -45,8 +45,8 @@ import {
   updateRoute,
   deleteRoute,
   getStudents,
-  getVehicles,
-  getEmployees,
+  getAllVehicles,
+  getAllDrivers,
   assignStudentsToRoute,
 } from '../services/api'
 
@@ -114,11 +114,11 @@ const Routes = () => {
         }
       })
 
-      const [routesRes, studentsRes, vehiclesRes, employeesRes] = await Promise.all([
+      const [routesRes, studentsRes, vehiclesRes, driversRes] = await Promise.all([
         getRoutes(routeParams),
         getStudents({}),
-        getVehicles({}),
-        getEmployees({}),
+        getAllVehicles(),
+        getAllDrivers(),
       ])
 
       // Handle routes response
@@ -154,16 +154,18 @@ const Routes = () => {
       const studentsData = studentsRes.data.data || studentsRes.data
       setStudents(studentsData)
 
-      // Handle vehicles response
-      const vehiclesData = vehiclesRes.data.data || vehiclesRes.data
+      // Handle vehicles response - using /vehicles/all
+      const vehiclesData = vehiclesRes.data.data || vehiclesRes.data || []
+      console.log('All vehicles:', vehiclesData)
       setVehicles(vehiclesData)
 
-      // Separate drivers and attendants from employees
-      const employeesData = employeesRes.data.data || employeesRes.data
-      console.log('All employees:', employeesData)
+      // Handle drivers response - using /drivers/all
+      const allDriversData = driversRes.data.data || driversRes.data || []
+      console.log('All drivers/attendants:', allDriversData)
 
-      const driversFiltered = employeesData.filter(e => e.position === 1)
-      const attendantsFiltered = employeesData.filter(e => e.position === 2)
+      // Separate drivers (position=1) and attendants (position=2)
+      const driversFiltered = allDriversData.filter(e => e.position === 1)
+      const attendantsFiltered = allDriversData.filter(e => e.position === 2)
 
       console.log('Drivers (position === 1):', driversFiltered)
       console.log('Attendants (position === 2):', attendantsFiltered)

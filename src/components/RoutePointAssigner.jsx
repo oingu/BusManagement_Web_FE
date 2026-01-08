@@ -30,10 +30,11 @@ import {
     ArrowForward as ArrowForwardIcon,
     ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material'
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { getAllPoints, getAllStudents, assignPointStudents } from '../services/api'
+import { calculateRoute, formatDistance, formatDuration } from '../services/routingService'
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl
@@ -94,6 +95,16 @@ function FlyToLocation({ position, zoom = 15 }) {
     return null
 }
 
+// School marker icon
+const schoolIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
+    iconSize: [30, 49],
+    iconAnchor: [15, 49],
+    popupAnchor: [1, -40],
+    shadowSize: [49, 49],
+})
+
 const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
     const [step, setStep] = useState(0) // 0: Select points, 1: Assign students
     const [points, setPoints] = useState([])
@@ -110,7 +121,97 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
     // Fly to position
     const [flyTo, setFlyTo] = useState(null)
 
-    const defaultCenter = [21.0285, 105.8542]
+    // Real route from OSRM
+    const [realRoute, setRealRoute] = useState(null)
+    const [routeInfo, setRouteInfo] = useState(null)
+    const [loadingRoute, setLoadingRoute] = useState(false)
+
+    // Vehicle capacity limit (capacity - 2 for driver and assistant)
+    const vehicleCapacity = route?.vehicle?.capacity || route?.total_students || 30
+    const maxStudents = Math.max(0, vehicleCapacity - 2)
+
+    // School location (can be configured)
+    const schoolLocation = { lat: 21.0285, lng: 105.8542 }
+    const defaultCenter = [schoolLocation.lat, schoolLocation.lng]
+
+    // Calculate straight line route path (fallback)
+    const getStraightRoutePath = () => {
+        if (selectedPoints.length === 0) return []
+
+        const path = []
+        path.push([schoolLocation.lat, schoolLocation.lng])
+
+        selectedPoints.forEach(point => {
+            const lat = parseFloat(point.latitude)
+            const lng = parseFloat(point.longitude)
+            if (!isNaN(lat) && !isNaN(lng)) {
+                path.push([lat, lng])
+            }
+        })
+
+        path.push([schoolLocation.lat, schoolLocation.lng])
+        return path
+    }
+
+    const straightRoutePath = getStraightRoutePath()
+
+    // Calculate real route using OSRM when selectedPoints change
+    useEffect(() => {
+        const fetchRealRoute = async () => {
+            if (selectedPoints.length === 0) {
+                setRealRoute(null)
+                setRouteInfo(null)
+                return
+            }
+
+            setLoadingRoute(true)
+
+            try {
+                // Build waypoints: School -> Points -> School (OSRM format: [lng, lat])
+                const waypoints = []
+                waypoints.push([schoolLocation.lng, schoolLocation.lat])
+
+                selectedPoints.forEach(point => {
+                    const lat = parseFloat(point.latitude)
+                    const lng = parseFloat(point.longitude)
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        waypoints.push([lng, lat])
+                    }
+                })
+
+                waypoints.push([schoolLocation.lng, schoolLocation.lat])
+
+                if (waypoints.length < 3) {
+                    setRealRoute(null)
+                    setRouteInfo(null)
+                    return
+                }
+
+                const result = await calculateRoute(waypoints)
+
+                if (result.success) {
+                    // Convert from [lng, lat] to [lat, lng] for Leaflet
+                    const leafletCoords = result.coordinates.map(coord => [coord[1], coord[0]])
+                    setRealRoute(leafletCoords)
+                    setRouteInfo({
+                        distance: result.distance,
+                        duration: result.duration,
+                    })
+                } else {
+                    setRealRoute(null)
+                    setRouteInfo(null)
+                }
+            } catch (error) {
+                console.error('Error calculating route:', error)
+                setRealRoute(null)
+                setRouteInfo(null)
+            } finally {
+                setLoadingRoute(false)
+            }
+        }
+
+        fetchRealRoute()
+    }, [selectedPoints, schoolLocation.lat, schoolLocation.lng])
 
     useEffect(() => {
         if (open) {
@@ -125,6 +226,8 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
         setCurrentPointIndex(0)
         setPointStudents({})
         setFlyTo(null)
+        setRealRoute(null)
+        setRouteInfo(null)
     }
 
     const fetchData = async () => {
@@ -176,6 +279,10 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
         }
     }
 
+    // Calculate total assigned students (needed for capacity check)
+    const totalAssignedStudents = Object.values(pointStudents).reduce((sum, ids) => sum + ids.length, 0)
+    const remainingCapacity = maxStudents - totalAssignedStudents
+
     // Move to student assignment step
     const handleNextToStudents = () => {
         if (selectedPoints.length === 0) return
@@ -195,11 +302,18 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
         const isSelected = currentStudents.includes(student.id)
 
         if (isSelected) {
+            // Allow removing student
             setPointStudents({
                 ...pointStudents,
                 [currentPoint.id]: currentStudents.filter(id => id !== student.id)
             })
         } else {
+            // Check if adding would exceed capacity
+            if (totalAssignedStudents >= maxStudents) {
+                alert(`Đã đạt giới hạn ${maxStudents} học sinh (sức chứa xe: ${vehicleCapacity} - 2 chỗ cho tài xế và phụ xe)`)
+                return
+            }
+
             setPointStudents({
                 ...pointStudents,
                 [currentPoint.id]: [...currentStudents, student.id]
@@ -267,9 +381,6 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
     // Get students for current point
     const currentPointStudentIds = currentPoint ? (pointStudents[currentPoint.id] || []) : []
 
-    // Calculate total assigned students
-    const totalAssignedStudents = Object.values(pointStudents).reduce((sum, ids) => sum + ids.length, 0)
-
     if (loading) {
         return (
             <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -304,7 +415,9 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                         <StepLabel>Chọn điểm dừng ({selectedPoints.length})</StepLabel>
                     </Step>
                     <Step>
-                        <StepLabel>Gán học sinh ({totalAssignedStudents})</StepLabel>
+                        <StepLabel>
+                            Gán học sinh ({totalAssignedStudents}/{maxStudents})
+                        </StepLabel>
                     </Step>
                 </Stepper>
 
@@ -312,7 +425,13 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                 {step === 0 && (
                     <Box>
                         <Alert severity="info" sx={{ mb: 2 }}>
-                            Click vào các điểm dừng trên bản đồ để thêm vào lộ trình. Thứ tự chọn sẽ là thứ tự điểm dừng.
+                            <strong>Hướng dẫn:</strong> Click vào các điểm dừng trên bản đồ để thêm vào lộ trình.
+                            <br />
+                            • 🏫 <strong style={{ color: 'red' }}>Marker đỏ</strong> = Trường học (điểm xuất phát & kết thúc)
+                            <br />
+                            • 📍 <strong style={{ color: 'green' }}>Marker xanh</strong> = Điểm dừng đã chọn
+                            <br />
+                            • 🛣️ <strong style={{ color: '#FF6B00' }}>Đường cam</strong> = Lộ trình thực tế: Trường → Điểm 1 → Điểm 2 → ... → Trường
                         </Alert>
 
                         <Box sx={{ display: 'flex', gap: 2, height: 600 }}>
@@ -350,7 +469,7 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                             </Paper>
 
                             {/* Map */}
-                            <Box sx={{ flex: 1 }}>
+                            <Box sx={{ flex: 1, position: 'relative' }}>
                                 <MapContainer
                                     center={defaultCenter}
                                     zoom={13}
@@ -389,7 +508,72 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                                             </Marker>
                                         )
                                     })}
+
+                                    {/* School marker */}
+                                    <Marker position={[schoolLocation.lat, schoolLocation.lng]} icon={schoolIcon}>
+                                        <Popup>
+                                            <Typography variant="subtitle2" fontWeight="bold" color="error">
+                                                🏫 Trường học
+                                            </Typography>
+                                            <Typography variant="body2">Điểm xuất phát & kết thúc</Typography>
+                                        </Popup>
+                                    </Marker>
+
+                                    {/* Route path polyline - use real route if available, fallback to straight line */}
+                                    {realRoute && realRoute.length > 1 ? (
+                                        <Polyline
+                                            positions={realRoute}
+                                            color="#FF6B00"
+                                            weight={6}
+                                            opacity={1}
+                                        />
+                                    ) : straightRoutePath.length > 1 && (
+                                        <Polyline
+                                            positions={straightRoutePath}
+                                            color="#FF9800"
+                                            weight={4}
+                                            opacity={0.8}
+                                            dashArray="10, 5"
+                                        />
+                                    )}
                                 </MapContainer>
+
+                                {/* Route Info Overlay */}
+                                {(routeInfo || loadingRoute) && (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 10,
+                                            right: 10,
+                                            bgcolor: 'white',
+                                            p: 1.5,
+                                            borderRadius: 2,
+                                            boxShadow: 2,
+                                            zIndex: 1000,
+                                        }}
+                                    >
+                                        {loadingRoute ? (
+                                            <Typography variant="body2" color="primary">
+                                                ⏳ Đang tính toán...
+                                            </Typography>
+                                        ) : routeInfo && (
+                                            <>
+                                                <Typography variant="subtitle2" fontWeight="bold">
+                                                    📍 Thông tin lộ trình
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    🛣️ Khoảng cách: <strong>{formatDistance(routeInfo.distance)}</strong>
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    ⏱️ Thời gian: <strong>{formatDuration(routeInfo.duration)}</strong>
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    📍 Số điểm dừng: <strong>{selectedPoints.length}</strong>
+                                                </Typography>
+                                            </>
+                                        )}
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
                     </Box>
@@ -398,10 +582,16 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                 {/* Step 1: Assign Students */}
                 {step === 1 && currentPoint && (
                     <Box>
-                        <Alert severity="info" sx={{ mb: 2 }}>
+                        <Alert severity={remainingCapacity <= 3 ? "warning" : "info"} sx={{ mb: 2 }}>
                             <strong>Điểm dừng {currentPointIndex + 1}/{selectedPoints.length}:</strong> {currentPoint.address}
                             <br />
                             Click vào học sinh trên bản đồ để thêm vào điểm dừng này.
+                            <br />
+                            <strong>Sức chứa:</strong> {totalAssignedStudents}/{maxStudents} học sinh
+                            {remainingCapacity > 0
+                                ? <span style={{ color: 'green' }}> (còn {remainingCapacity} chỗ)</span>
+                                : <span style={{ color: 'red' }}> (đã đầy)</span>
+                            }
                         </Alert>
 
                         {/* Point Navigation */}

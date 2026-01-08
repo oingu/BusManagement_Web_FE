@@ -165,10 +165,14 @@ export const getVehicles = (params = {}) => {
   const queryString = queryParams.toString()
   return api.get(`/vehicles${queryString ? `?${queryString}` : ''}`)
 }
+export const getAllVehicles = () => api.get('/vehicles/all')
 export const getVehicle = (id) => api.get(`/vehicles/${id}`)
 export const createVehicle = (data) => api.post('/vehicles', data)
 export const updateVehicle = (id, data) => api.put(`/vehicles/${id}`, data)
 export const deleteVehicle = (id) => api.delete(`/vehicles/${id}`)
+
+// Drivers (Tài xế & Phụ xe) - All without pagination
+export const getAllDrivers = (params = {}) => api.get('/drivers/all', { params })
 
 // Routes/Trips (Lộ trình)
 export const getRoutes = (params) => api.get('/trips', { params })
