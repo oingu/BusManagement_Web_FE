@@ -59,8 +59,14 @@ const initialFormData = {
   curr_students: 0,
   type: 0,
   status: 0,
-  start_time: '',
-  end_time: '',
+  start_time: '07:00',
+  end_time: '08:30',
+  is_mon: true,
+  is_tue: true,
+  is_wed: true,
+  is_thu: true,
+  is_fri: true,
+  is_sat: false,
 }
 
 const Routes = () => {
@@ -195,8 +201,14 @@ const Routes = () => {
         curr_students: route.studentCount || 0,
         type: route.type,
         status: route.status === 'Hoạt động' ? 1 : route.status === 'Chưa bắt đầu' ? 0 : 2,
-        start_time: route.start_time || '',
-        end_time: route.end_time || '',
+        start_time: route.start_time || '07:00',
+        end_time: route.end_time || '08:30',
+        is_mon: route.is_mon ?? true,
+        is_tue: route.is_tue ?? true,
+        is_wed: route.is_wed ?? true,
+        is_thu: route.is_thu ?? true,
+        is_fri: route.is_fri ?? true,
+        is_sat: route.is_sat ?? false,
       })
       setEditingId(route.id)
     } else {
@@ -233,8 +245,14 @@ const Routes = () => {
         curr_students: parseInt(formData.curr_students) || 0,
         type: parseInt(formData.type),
         status: parseInt(formData.status),
-        start_time: formData.start_time,
-        end_time: formData.end_time,
+        start_time: formData.start_time || '07:00', // Format: "HH:mm"
+        end_time: formData.end_time || '08:30', // Format: "HH:mm"
+        is_mon: formData.is_mon || false,
+        is_tue: formData.is_tue || false,
+        is_wed: formData.is_wed || false,
+        is_thu: formData.is_thu || false,
+        is_fri: formData.is_fri || false,
+        is_sat: formData.is_sat || false,
       }
 
       if (editingId) {
@@ -596,7 +614,7 @@ const Routes = () => {
               <TextField
                 fullWidth
                 label="Giờ bắt đầu"
-                type="datetime-local"
+                type="time"
                 value={formData.start_time}
                 onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                 required
@@ -607,7 +625,7 @@ const Routes = () => {
               <TextField
                 fullWidth
                 label="Giờ kết thúc"
-                type="datetime-local"
+                type="time"
                 value={formData.end_time}
                 onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                 required
@@ -626,6 +644,32 @@ const Routes = () => {
                 <MenuItem value={1}>Đang diễn ra</MenuItem>
                 <MenuItem value={2}>Đã hoàn thành</MenuItem>
               </TextField>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                Ngày hoạt động trong tuần:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {[
+                  { key: 'is_mon', label: 'Thứ 2' },
+                  { key: 'is_tue', label: 'Thứ 3' },
+                  { key: 'is_wed', label: 'Thứ 4' },
+                  { key: 'is_thu', label: 'Thứ 5' },
+                  { key: 'is_fri', label: 'Thứ 6' },
+                  { key: 'is_sat', label: 'Thứ 7' },
+                ].map(day => (
+                  <Button
+                    key={day.key}
+                    variant={formData[day.key] ? "contained" : "outlined"}
+                    color={formData[day.key] ? "primary" : "inherit"}
+                    size="small"
+                    onClick={() => setFormData({ ...formData, [day.key]: !formData[day.key] })}
+                    sx={{ minWidth: 70 }}
+                  >
+                    {day.label}
+                  </Button>
+                ))}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>

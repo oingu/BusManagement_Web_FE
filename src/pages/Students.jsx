@@ -802,6 +802,47 @@ const Students = () => {
                   </Grid>
                 )}
 
+                {/* QR Code Section */}
+                {viewingStudent.qr_code_image_url && (
+                  <>
+                    <Grid item xs={12}>
+                      <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
+                        Mã QR
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                    </Grid>
+                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          bgcolor: 'white',
+                          borderRadius: 2,
+                          boxShadow: 2,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <img
+                          src={viewingStudent.qr_code_image_url}
+                          alt={`QR Code - ${viewingStudent.full_name}`}
+                          style={{
+                            width: 200,
+                            height: 200,
+                            objectFit: 'contain',
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                          }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                          Mã học sinh: {viewingStudent.student_number}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </>
+                )}
+
                 <Grid item xs={12}>
                   <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
                     Thông tin hệ thống
