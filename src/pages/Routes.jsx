@@ -465,9 +465,49 @@ const Routes = () => {
           </Button>
           <Button
             variant="contained"
-            color="secondary"
             startIcon={<AutoIcon />}
             onClick={() => setOpenAutoGenerator(true)}
+            sx={{
+              background: 'linear-gradient(135deg, #4285f4 0%, #9b72cb 25%, #d96570 50%, #9b72cb 75%, #4285f4 100%)',
+              backgroundSize: '200% 200%',
+              animation: 'gradientShift 3s ease infinite',
+              color: 'white',
+              fontWeight: 'bold',
+              textTransform: 'none',
+              px: 3,
+              py: 1,
+              boxShadow: '0 4px 15px rgba(66, 133, 244, 0.4)',
+              border: 'none',
+              position: 'relative',
+              overflow: 'hidden',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4285f4 0%, #9b72cb 25%, #d96570 50%, #9b72cb 75%, #4285f4 100%)',
+                backgroundSize: '200% 200%',
+                animation: 'gradientShift 1.5s ease infinite',
+                boxShadow: '0 6px 20px rgba(155, 114, 203, 0.5)',
+                transform: 'translateY(-2px)',
+              },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                animation: 'shimmer 2s infinite',
+              },
+              '@keyframes gradientShift': {
+                '0%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
+                '100%': { backgroundPosition: '0% 50%' },
+              },
+              '@keyframes shimmer': {
+                '0%': { left: '-100%' },
+                '100%': { left: '100%' },
+              },
+              transition: 'all 0.3s ease',
+            }}
           >
             Tự động tạo lộ trình
           </Button>
