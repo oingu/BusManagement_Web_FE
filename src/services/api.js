@@ -202,5 +202,38 @@ export const assignPointStudents = (tripId, data) =>
 export const getDashboardStats = () => api.get('/dashboard/stats')
 export const getTodayAttendance = () => api.get('/dashboard/attendance/today')
 
+// VRP API Base URL - Clustering + VRP service
+const VRP_API_BASE_URL = import.meta.env.VITE_VRP_API_URL || 'http://localhost:8000'
+
+// VRP Service API (separate from main API)
+const vrpApi = axios.create({
+  baseURL: VRP_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+/**
+ * Clustering API - Gán học sinh cho các điểm dừng (pickup points)
+ * @param {Object} data - ClusteringRequest
+ * @param {Array} data.students - Danh sách học sinh [{id, lat, lon}]
+ * @param {Array} data.must_link - Các cặp học sinh phải cùng điểm đón [(id1, id2)]
+ * @param {Array} data.cannot_link - Các cặp học sinh không được cùng điểm đón [(id1, id2)]
+ * @param {number} data.Rmax - Bán kính tối đa của cluster (km), mặc định 0.5
+ * @returns {Object} ClusteringResponse - {num_clusters, assignment, pickup_points}
+ */
+export const runClustering = (data) => vrpApi.post('/api/clustering', data)
+
+/**
+ * VRP API - Tạo lộ trình tối ưu cho các xe
+ * @param {Object} data - VRPRequest
+ * @param {Array} data.pickup_points - Danh sách điểm đón [{pickup_id, lat, lon, num_students}]
+ * @param {Object} data.depot - Điểm xuất phát (trường học) {lat, lon, name}
+ * @param {number} data.vehicle_capacity - Sức chứa mỗi xe
+ * @param {number} data.max_vehicles - Số xe tối đa
+ * @returns {Object} VRPResponse - {num_vehicles, routes}
+ */
+export const runVRP = (data) => vrpApi.post('/api/vrp', data)
+
 export default api
 

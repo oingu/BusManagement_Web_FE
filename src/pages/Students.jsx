@@ -131,11 +131,12 @@ const Students = () => {
         grade: student.grade,
         className: `${student.grade}A`, // You might need to adjust this based on actual data
         address: student.address || '-',
-        parentName: '-', // Will be populated if needed
-        parentPhone: '-', // Will be populated if needed
+        parentName: student.parent?.full_name || '-',
+        parentPhone: student.parent?.phone_number || '-',
         parentAccountId: student.student_parent_id,
         latitude: student.latitude,
         longitude: student.longitude,
+        qr_code_image_url: student.qr_code_image_url,
         status: student.status === 1 ? 'Hoạt động' : 'Ngừng đi xe',
         photo: 'https://i.pravatar.cc/150', // Default photo
         // Keep original fields for editing
@@ -824,7 +825,7 @@ const Students = () => {
                         }}
                       >
                         <img
-                          src={viewingStudent.qr_code_image_url}
+                          src={viewingStudent.qr_code_image_url.replace(/\\\//g, '/')}
                           alt={`QR Code - ${viewingStudent.full_name}`}
                           style={{
                             width: 200,
@@ -832,7 +833,14 @@ const Students = () => {
                             objectFit: 'contain',
                           }}
                           onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src = ''
                             e.target.style.display = 'none'
+                            e.target.parentElement.innerHTML = `
+                              <div style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; color: #999;">
+                                <span>Không thể tải mã QR</span>
+                              </div>
+                            `
                           }}
                         />
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>

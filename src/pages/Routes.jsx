@@ -33,12 +33,14 @@ import {
   ArrowDownward as ArrowDownIcon,
   FilterList,
   LocationOn as LocationIcon,
+  AutoAwesome as AutoIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RouteMap from '../components/RouteMap'
 import TripRouteMap from '../components/TripRouteMap'
 import RoutePointAssigner from '../components/RoutePointAssigner'
+import AutoRouteGenerator from '../components/AutoRouteGenerator'
 import {
   getRoutes,
   createRoute,
@@ -82,6 +84,7 @@ const Routes = () => {
   const [openConfirm, setOpenConfirm] = useState(false)
   const [openFilterDialog, setOpenFilterDialog] = useState(false)
   const [openPointAssigner, setOpenPointAssigner] = useState(false)
+  const [openAutoGenerator, setOpenAutoGenerator] = useState(false)
   const [formData, setFormData] = useState(initialFormData)
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
@@ -459,6 +462,14 @@ const Routes = () => {
             onClick={() => setOpenFilterDialog(true)}
           >
             Lọc dữ liệu
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<AutoIcon />}
+            onClick={() => setOpenAutoGenerator(true)}
+          >
+            Tự động tạo lộ trình
           </Button>
           <Button
             variant="contained"
@@ -1035,6 +1046,21 @@ const Routes = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Auto Route Generator Dialog */}
+      <AutoRouteGenerator
+        open={openAutoGenerator}
+        onClose={() => setOpenAutoGenerator(false)}
+        onSuccess={(result) => {
+          console.log('Auto route generation result:', result)
+          fetchData()
+          setSnackbar({
+            open: true,
+            message: `Đã tạo thành công ${result.vrp.num_vehicles} lộ trình với ${result.clustering.num_clusters} điểm đón!`,
+            severity: 'success',
+          })
+        }}
+      />
     </Box>
   )
 }
