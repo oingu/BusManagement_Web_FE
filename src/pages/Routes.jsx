@@ -43,6 +43,7 @@ import RoutePointAssigner from '../components/RoutePointAssigner'
 import AutoRouteGenerator from '../components/AutoRouteGenerator'
 import {
   getRoutes,
+  getRoute,
   createRoute,
   updateRoute,
   deleteRoute,
@@ -51,6 +52,34 @@ import {
   getAllDrivers,
   assignStudentsToRoute,
 } from '../services/api'
+
+// Helper function to format time to hh:mm format
+const formatTimeToHHMM = (timeValue) => {
+  if (!timeValue) return '07:00'
+
+  // If already in hh:mm format
+  if (typeof timeValue === 'string' && /^\d{2}:\d{2}$/.test(timeValue)) {
+    return timeValue
+  }
+
+  // If it's a datetime string like "2025-12-28T07:00:00.000000Z" or "07:00:00"
+  if (typeof timeValue === 'string') {
+    // Try to extract hh:mm from the string
+    const timeMatch = timeValue.match(/(\d{2}):(\d{2})/)
+    if (timeMatch) {
+      return `${timeMatch[1]}:${timeMatch[2]}`
+    }
+  }
+
+  // If it's a Date object
+  if (timeValue instanceof Date) {
+    const hours = timeValue.getHours().toString().padStart(2, '0')
+    const minutes = timeValue.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+
+  return '07:00' // Default fallback
+}
 
 const initialFormData = {
   name: '',
@@ -145,10 +174,11 @@ const Routes = () => {
         driver: route.driver?.full_name || '-',
         attendant: route.assistant?.full_name || '-',
         routeType: route.type === 0 ? 'Đón sáng' : 'Trả chiều',
-        startTime: route.start_time ? new Date(route.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-        endTime: route.end_time ? new Date(route.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-        studentCount: route.curr_students || 0,
-        totalStudents: route.total_students || 0,
+        startTime: formatTimeToHHMM(route.start_time),
+        endTime: formatTimeToHHMM(route.end_time),
+        curr_students: route.curr_students || 0,
+        total_students: route.total_students || 0,
+        studentDisplay: `${route.curr_students || 0}/${route.total_students || 0}`,
         status: route.status === 1 ? 'Hoạt động' : route.status === 0 ? 'Chưa bắt đầu' : 'Đã hoàn thành',
         // Keep original fields
         driver_id: route.driver_id,
@@ -193,32 +223,47 @@ const Routes = () => {
     }
   }
 
-  const handleOpenDialog = (route = null) => {
+  const handleOpenDialog = async (route = null) => {
     if (route) {
-      setFormData({
-        name: route.name,
-        driver_id: route.driver_id || '',
-        assistant_id: route.assistant_id || '',
-        vehicle_id: route.vehicle_id || '',
-        total_students: route.totalStudents || 0,
-        curr_students: route.studentCount || 0,
-        type: route.type,
-        status: route.status === 'Hoạt động' ? 1 : route.status === 'Chưa bắt đầu' ? 0 : 2,
-        start_time: route.start_time || '07:00',
-        end_time: route.end_time || '08:30',
-        is_mon: route.is_mon ?? true,
-        is_tue: route.is_tue ?? true,
-        is_wed: route.is_wed ?? true,
-        is_thu: route.is_thu ?? true,
-        is_fri: route.is_fri ?? true,
-        is_sat: route.is_sat ?? false,
-      })
-      setEditingId(route.id)
+      try {
+        // Fetch detailed route information from API
+        const response = await getRoute(route.id)
+        const routeData = response.data.data || response.data
+        console.log('Route details:', routeData)
+
+        setFormData({
+          name: routeData.name || '',
+          driver_id: routeData.driver_id || '',
+          assistant_id: routeData.assistant_id || '',
+          vehicle_id: routeData.vehicle_id || '',
+          total_students: routeData.total_students || 0,
+          curr_students: routeData.curr_students || 0,
+          type: routeData.type ?? 0,
+          status: routeData.status ?? 0,
+          start_time: formatTimeToHHMM(routeData.start_time),
+          end_time: formatTimeToHHMM(routeData.end_time),
+          is_mon: routeData.is_mon ?? true,
+          is_tue: routeData.is_tue ?? true,
+          is_wed: routeData.is_wed ?? true,
+          is_thu: routeData.is_thu ?? true,
+          is_fri: routeData.is_fri ?? true,
+          is_sat: routeData.is_sat ?? false,
+        })
+        setEditingId(route.id)
+        setOpenDialog(true)
+      } catch (error) {
+        console.error('Error fetching route details:', error)
+        setSnackbar({
+          open: true,
+          message: 'Không thể lấy thông tin lộ trình!',
+          severity: 'error',
+        })
+      }
     } else {
       setFormData(initialFormData)
       setEditingId(null)
+      setOpenDialog(true)
     }
-    setOpenDialog(true)
   }
 
   const handleCloseDialog = () => {
@@ -246,17 +291,19 @@ const Routes = () => {
         vehicle_id: parseInt(formData.vehicle_id),
         total_students: parseInt(formData.total_students) || 0,
         curr_students: parseInt(formData.curr_students) || 0,
-        type: parseInt(formData.type),
-        status: parseInt(formData.status),
-        start_time: formData.start_time || '07:00', // Format: "HH:mm"
-        end_time: formData.end_time || '08:30', // Format: "HH:mm"
-        is_mon: formData.is_mon || false,
-        is_tue: formData.is_tue || false,
-        is_wed: formData.is_wed || false,
-        is_thu: formData.is_thu || false,
-        is_fri: formData.is_fri || false,
-        is_sat: formData.is_sat || false,
+        type: parseInt(formData.type) || 0,
+        status: parseInt(formData.status) || 0,
+        start_time: formatTimeToHHMM(formData.start_time),
+        end_time: formatTimeToHHMM(formData.end_time),
+        is_mon: Boolean(formData.is_mon),
+        is_tue: Boolean(formData.is_tue),
+        is_wed: Boolean(formData.is_wed),
+        is_thu: Boolean(formData.is_thu),
+        is_fri: Boolean(formData.is_fri),
+        is_sat: Boolean(formData.is_sat),
       }
+
+      console.log('Submitting route data:', dataToSubmit)
 
       if (editingId) {
         await updateRoute(editingId, dataToSubmit)
@@ -404,7 +451,8 @@ const Routes = () => {
     { id: 'attendant', label: 'Phụ xe' },
     { id: 'routeType', label: 'Loại' },
     { id: 'startTime', label: 'Giờ bắt đầu' },
-    { id: 'studentCount', label: 'Số HS', render: (value) => value || 0 },
+    { id: 'endTime', label: 'Giờ kết thúc' },
+    { id: 'studentDisplay', label: 'Số HS' },
     { id: 'status', label: 'Trạng thái', type: 'status' },
     {
       id: 'map',

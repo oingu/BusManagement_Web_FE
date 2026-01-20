@@ -309,6 +309,13 @@ const AutoRouteGenerator = ({ open, onClose, onSuccess }) => {
                 end_time: '08:30',
                 total_students: route.total_students,
                 stops: route.stops,
+                // Ngày hoạt động trong tuần
+                is_mon: true,
+                is_tue: true,
+                is_wed: true,
+                is_thu: true,
+                is_fri: true,
+                is_sat: false,
             }))
             setRouteAssignments(initialAssignments)
 
@@ -401,14 +408,14 @@ const AutoRouteGenerator = ({ open, onClose, onSuccess }) => {
                     curr_students: 0,
                     type: assignment.type,
                     status: 0, // Chưa bắt đầu
-                    start_time: assignment.start_time,
-                    end_time: assignment.end_time,
-                    is_mon: true,
-                    is_tue: true,
-                    is_wed: true,
-                    is_thu: true,
-                    is_fri: true,
-                    is_sat: false,
+                    start_time: assignment.start_time || '07:00',
+                    end_time: assignment.end_time || '08:30',
+                    is_mon: assignment.is_mon ?? false,
+                    is_tue: assignment.is_tue ?? false,
+                    is_wed: assignment.is_wed ?? false,
+                    is_thu: assignment.is_thu ?? false,
+                    is_fri: assignment.is_fri ?? false,
+                    is_sat: assignment.is_sat ?? false,
                 }
 
                 console.log(`Creating trip ${i + 1}:`, tripData)
@@ -956,6 +963,37 @@ const AutoRouteGenerator = ({ open, onClose, onSuccess }) => {
                                                 <Typography variant="caption" color="text.secondary">
                                                     Điểm dừng: {route.stops.map(s => `#${s + 1}`).join(' → ')}
                                                 </Typography>
+                                            </Grid>
+                                            <Grid item xs={12}>
+                                                <Typography variant="caption" fontWeight="bold" sx={{ mb: 0.5, display: 'block' }}>
+                                                    Ngày hoạt động:
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {[
+                                                        { key: 'is_mon', label: 'T2' },
+                                                        { key: 'is_tue', label: 'T3' },
+                                                        { key: 'is_wed', label: 'T4' },
+                                                        { key: 'is_thu', label: 'T5' },
+                                                        { key: 'is_fri', label: 'T6' },
+                                                        { key: 'is_sat', label: 'T7' },
+                                                    ].map(day => (
+                                                        <Chip
+                                                            key={day.key}
+                                                            label={day.label}
+                                                            size="small"
+                                                            color={assignment[day.key] ? 'primary' : 'default'}
+                                                            variant={assignment[day.key] ? 'filled' : 'outlined'}
+                                                            onClick={() => updateAssignment(idx, day.key, !assignment[day.key])}
+                                                            sx={{
+                                                                cursor: 'pointer',
+                                                                minWidth: 36,
+                                                                '&:hover': {
+                                                                    opacity: 0.8,
+                                                                }
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </Box>
                                             </Grid>
                                         </Grid>
                                     </AccordionDetails>
