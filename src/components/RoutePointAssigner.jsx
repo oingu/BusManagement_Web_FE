@@ -33,7 +33,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { getAllPoints, getAllStudents, assignPointStudents } from '../services/api'
+import { getAllPoints, getAllStudents, assignPointStudents, getVehicle } from '../services/api'
 import { calculateRoute, formatDistance, formatDuration } from '../services/routingService'
 
 // Fix for default marker icons
@@ -127,8 +127,9 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
     const [loadingRoute, setLoadingRoute] = useState(false)
 
     // Vehicle capacity limit (capacity - 2 for driver and assistant)
-    const vehicleCapacity = route?.vehicle?.capacity || route?.total_students || 30
-    const maxStudents = Math.max(0, vehicleCapacity - 2)
+    const [vehicleCapacity, setVehicleCapacity] = useState(30)
+    const [maxStudents, setMaxStudents] = useState(28)
+    const [capacityError, setCapacityError] = useState(null)
 
     // School location (can be configured)
     const schoolLocation = { lat: 21.0285, lng: 105.8542 }
@@ -233,6 +234,24 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
     const fetchData = async () => {
         try {
             setLoading(true)
+
+            // Fetch vehicle capacity if route has vehicle_id
+            if (route?.vehicle_id) {
+                try {
+                    const vehicleRes = await getVehicle(route.vehicle_id)
+                    const vehicleData = vehicleRes.data.data || vehicleRes.data
+                    console.log('Vehicle details:', vehicleData)
+                    const capacity = vehicleData.capacity || 30
+                    setVehicleCapacity(capacity)
+                    setMaxStudents(Math.max(0, capacity - 2))
+                } catch (vehicleError) {
+                    console.error('Error fetching vehicle:', vehicleError)
+                    // Fallback to default
+                    setVehicleCapacity(30)
+                    setMaxStudents(28)
+                }
+            }
+
             const [pointsRes, studentsRes] = await Promise.all([
                 getAllPoints(), // Use /points/all API
                 getAllStudents(),
@@ -243,6 +262,7 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
 
             console.log('All points:', pointsData)
             console.log('All students:', studentsData)
+            console.log('Vehicle capacity:', vehicleCapacity, 'Max students:', maxStudents)
 
             // Filter points with valid coordinates
             setPoints(pointsData.filter(p => {
@@ -307,13 +327,17 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                 ...pointStudents,
                 [currentPoint.id]: currentStudents.filter(id => id !== student.id)
             })
+            setCapacityError(null) // Clear error when removing
         } else {
             // Check if adding would exceed capacity
             if (totalAssignedStudents >= maxStudents) {
-                alert(`Đã đạt giới hạn ${maxStudents} học sinh (sức chứa xe: ${vehicleCapacity} - 2 chỗ cho tài xế và phụ xe)`)
+                setCapacityError(`Đã đạt giới hạn ${maxStudents} học sinh! (Sức chứa xe: ${vehicleCapacity} - 2 chỗ cho tài xế và phụ xe)`)
+                // Auto-clear error after 5 seconds
+                setTimeout(() => setCapacityError(null), 5000)
                 return
             }
 
+            setCapacityError(null) // Clear error on successful add
             setPointStudents({
                 ...pointStudents,
                 [currentPoint.id]: [...currentStudents, student.id]
@@ -593,6 +617,17 @@ const RoutePointAssigner = ({ open, onClose, route, onSuccess }) => {
                                 : <span style={{ color: 'red' }}> (đã đầy)</span>
                             }
                         </Alert>
+
+                        {/* Capacity Error Alert */}
+                        {capacityError && (
+                            <Alert
+                                severity="error"
+                                sx={{ mb: 2 }}
+                                onClose={() => setCapacityError(null)}
+                            >
+                                {capacityError}
+                            </Alert>
+                        )}
 
                         {/* Point Navigation */}
                         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
