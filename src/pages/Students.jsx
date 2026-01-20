@@ -588,14 +588,14 @@ const Students = () => {
                           student_parent_id: e.target.value,
                         })
                       }}
-                      helperText="Chọn phụ huynh từ danh sách (user_id sẽ được gửi tới API)"
+                      helperText="Chọn phụ huynh từ danh sách"
                     >
                       <MenuItem value="">
                         <em>Chưa liên kết</em>
                       </MenuItem>
                       {parents.map((parent) => (
-                        <MenuItem key={parent.id} value={parent.user_id}>
-                          {parent.full_name} - {parent.phone_number} (User ID: {parent.user_id})
+                        <MenuItem key={parent.id} value={parent.id}>
+                          {parent.full_name} - {parent.phone_number} (ID: {parent.id})
                         </MenuItem>
                       ))}
                     </TextField>
@@ -804,7 +804,7 @@ const Students = () => {
                 )}
 
                 {/* QR Code Section */}
-                {viewingStudent.qr_code_image_url && (
+                {viewingStudent.qr_code_image_url ? (
                   <>
                     <Grid item xs={12}>
                       <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
@@ -833,18 +833,61 @@ const Students = () => {
                             objectFit: 'contain',
                           }}
                           onError={(e) => {
-                            e.target.onerror = null
-                            e.target.src = ''
                             e.target.style.display = 'none'
-                            e.target.parentElement.innerHTML = `
-                              <div style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; color: #999;">
-                                <span>Không thể tải mã QR</span>
-                              </div>
-                            `
+                            e.target.nextElementSibling.style.display = 'flex'
                           }}
                         />
+                        <Box
+                          sx={{
+                            display: 'none',
+                            width: 200,
+                            height: 200,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: '#f5f5f5',
+                            borderRadius: 2,
+                            flexDirection: 'column',
+                            gap: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary" align="center">
+                            ⚠️ Không thể tải mã QR
+                          </Typography>
+                          <Typography variant="caption" color="text.disabled" align="center">
+                            Vui lòng liên hệ quản trị viên
+                          </Typography>
+                        </Box>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                           Mã học sinh: {viewingStudent.student_number}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </>
+                ) : (
+                  <>
+                    <Grid item xs={12}>
+                      <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
+                        Mã QR
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                    </Grid>
+                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Box
+                        sx={{
+                          p: 3,
+                          bgcolor: '#f9f9f9',
+                          borderRadius: 2,
+                          border: '1px dashed #ccc',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Typography variant="body1" color="text.secondary">
+                          📱 Chưa có mã QR
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled" sx={{ mt: 1 }}>
+                          Mã QR sẽ được tạo tự động bởi hệ thống
                         </Typography>
                       </Box>
                     </Grid>
