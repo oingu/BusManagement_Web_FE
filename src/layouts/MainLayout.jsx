@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Box,
@@ -19,7 +19,6 @@ import {
 } from '@mui/material'
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
   DirectionsBus as BusIcon,
   People as PeopleIcon,
   School as SchoolIcon,
@@ -28,13 +27,13 @@ import {
   Route as RouteIcon,
   Logout as LogoutIcon,
   LocationOn as LocationIcon,
+  AccessTime as ClockIcon,
 } from '@mui/icons-material'
 import { logout as logoutAPI } from '../services/api'
 
 const drawerWidth = 260
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Quản lý Nhân viên', icon: <PeopleIcon />, path: '/employees' },
   { text: 'Quản lý Học sinh', icon: <SchoolIcon />, path: '/students' },
   { text: 'Quản lý Phụ huynh', icon: <ParentsIcon />, path: '/parents' },
@@ -47,8 +46,17 @@ const menuItems = [
 const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Get user info from localStorage
   const getUserInfo = () => {
@@ -103,7 +111,7 @@ const MainLayout = () => {
           alignItems: 'center',
           justifyContent: 'center',
           px: 2,
-          py: 3,
+          py: 1.5,
           background: 'linear-gradient(135deg, #fbc02d 0%, #f57f17 100%)', // Gradient vàng
         }}
       >
@@ -158,6 +166,32 @@ const MainLayout = () => {
           )
         })}
       </List>
+
+      {/* Clock at bottom */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          p: 2,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'grey.50',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <ClockIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" fontWeight="bold" color="primary.main">
+              {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {currentTime.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   )
 

@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
 import Students from './pages/Students'
 import Parents from './pages/Parents'
@@ -17,7 +16,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/" replace /> : <Login />
+        isAuthenticated ? <Navigate to="/employees" replace /> : <Login />
       } />
 
       <Route path="/" element={
@@ -25,7 +24,7 @@ function App() {
           <MainLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/employees" replace />} />
         <Route path="employees" element={<Employees />} />
         <Route path="students" element={<Students />} />
         <Route path="parents" element={<Parents />} />
